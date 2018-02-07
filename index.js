@@ -18,6 +18,8 @@ const request = require('request-promise-native')
 const path = require('path')
 const lookup = promisify(require('dns').lookup)
 const {URL} = require('url')
+const execFile = promisify(require('child_process').execFile)
+
 
 const DWD_COSMO_DE_BASE_URL = 'https://opendata.dwd.de/weather/cosmo/de/grib/'
 const DWD_FORECAST_BASE_URL = 'https://opendata.dwd.de/weather/local_forecasts/poi/'
@@ -316,7 +318,11 @@ async function COSMO_DEMain() {
       const dateTimeString = fileNameTokens[fileNameTokens.length - 2]
 
       const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'grib', dateTimeString, sourceQuantity)
-      const filePath =  path.join(directoryPath, urlTokens[urlTokens.length - 1])
+      const filePath =  path.join(
+        directoryPath,
+        urlTokens[urlTokens.length - 1].replace('bz2', 'lz4')
+      )
+
       const exists = await fs.pathExists(filePath)
 
       if (exists) {
@@ -324,6 +330,7 @@ async function COSMO_DEMain() {
       }
 
       try {
+        log.info('downloading ' + url)
         var content = await downloadFile(url)
       } catch (error) {
         log.error(error, 'downloading ' + url + ' failed')
@@ -332,11 +339,23 @@ async function COSMO_DEMain() {
 
       try {
         await fs.ensureDir(directoryPath)
-        await fs.writeFile(filePath, content, {encoding: null})
+        await fs.writeFile(filePath.replace('lz4', 'bz2'), content, {encoding: null})
+        await execFile('bzip2', ['-d', filePath.replace('lz4', 'bz2')])
+        await execFile('lz4', ['-z9', filePath.replace('\.lz4', ''), filePath])
+        await fs.unlink(filePath.replace('\.lz4', ''))
+      } catch (error) {
+        log.error(error, 'decompressing bzip2 file ' + url + ' failed')
+        continue
+      }
+
+      /*
+      try {
+        await fs.writeFile(targetFilePath, content, {encoding: null})
       } catch (error) {
         log.fatal({error: error, filePath: filePath}, 'storing file at ' + filePath + ' failed')
         process.exit(1)
       }
+      */
     }
 
     // wait COMPLETE_CYCLE_WAIT_MINUTES minutes before polling for new files
