@@ -9,10 +9,10 @@
   "author": "Florian Wagner <florian.wagner@aut.uni-saarland.de>",
   "license": "ISC",
   "dependencies": {
-    "await-delay": "^1.0.0",
     "bluebird": "^3.5.1",
     "bunyan": "^1.8.12",
     "cheerio": "^1.0.0-rc.2",
+    "delay": "^2.0.0",
     "eslint": "^4.14.0",
     "fs-extra": "^5.0.0",
     "jquery": "^3.2.1",

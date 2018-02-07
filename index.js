@@ -11,22 +11,21 @@ var log = bunyan.createLogger({name: 'dwd_data_crawler'})
 const {promisify} = require('util')
 const _ = require('lodash')
 const dwd_grib = require('./lib/dwd_grib')
-const delay = require('await-delay')
+const delay = require('delay')
 const fs = require('fs-extra')
 const processenv = require('processenv')
 const request = require('request-promise-native')
 const path = require('path')
-const resolve4 = promisify(require('dns').resolve4)
 const lookup = promisify(require('dns').lookup)
 const {URL} = require('url')
 
-const DWD_GRIB_BASE_URL = 'https://opendata.dwd.de/weather/cosmo/de/grib/'
+const DWD_COSMO_DE_BASE_URL = 'https://opendata.dwd.de/weather/cosmo/de/grib/'
 const DWD_FORECAST_BASE_URL = 'https://opendata.dwd.de/weather/local_forecasts/poi/'
 const DWD_REPORT_BASE_URL = 'https://opendata.dwd.de/weather/weather_reports/poi/'
 
 const DOWNLOAD_DIRECTORY_BASE_PATH = processenv('DOWNLOAD_DIRECTORY_BASE_PATH')
-const GRIB_CRAWL_RETRY_WAIT_MINUTES = processenv('GRIB_CRAWL_RETRY_WAIT_MINUTES') || 1
-const GRIB_COMPLETE_CYCLE_WAIT_MINUTES = processenv('GRIB_COMPLETE_CYCLE_WAIT_MINUTES') || 10
+const COSMO_DE_CRAWL_RETRY_WAIT_MINUTES = processenv('COSMO_DE_CRAWL_RETRY_WAIT_MINUTES') || 1
+const COSMO_DE_COMPLETE_CYCLE_WAIT_MINUTES = processenv('COSMO_DE_COMPLETE_CYCLE_WAIT_MINUTES') || 10
 
 const FORECAST_CRAWL_RETRY_WAIT_MINUTES = processenv('CRAWL_RETRY_WAIT_MINUTES') || 1
 const FORECAST_COMPLETE_CYCLE_WAIT_MINUTES = processenv('COMPLETE_CYCLE_WAIT_MINUTES') || 120
@@ -35,8 +34,9 @@ const REPORT_CRAWL_RETRY_WAIT_MINUTES = processenv('CRAWL_RETRY_WAIT_MINUTES') |
 const REPORT_COMPLETE_CYCLE_WAIT_MINUTES = processenv('COMPLETE_CYCLE_WAIT_MINUTES') || 30
 
 
+// check if necessery DOWNLOAD_DIRECTORY_BASE_PATH env var is given
 if (_.isNil(DOWNLOAD_DIRECTORY_BASE_PATH)) {
-  log.fatal('no download directory base path given')
+  log.fatal('no download directory base path (env variable DOWNLOAD_DIRECTORY_BASE_PATH) given')
   process.exit(EXIT_CODES.DOWNLOAD_DIRECTORY_BASE_PATH_NIL_ERROR)
 }
 
@@ -54,6 +54,13 @@ function getDataForLocationInGrib(grib, lo, la) {
   return data[(numberOfColumns * row) + column]
 }
 
+
+/**
+ * convertDomainUrlToIPUrl asynchronously queries the IPv4 address for a given
+ * host using the lookup method of the node.js dns package
+ * @param  {String} domainUrlString the url to query the IP address for
+ * @return {String}                 the ip address for the url
+ */
 async function convertDomainUrlToIPUrl(domainUrlString) {
   const domainUrl = new URL(domainUrlString)
 
@@ -61,17 +68,24 @@ async function convertDomainUrlToIPUrl(domainUrlString) {
     var ip = await lookup(domainUrl.hostname)
     ip = ip.address
   } catch (error) {
-    console.log('resolve4 error')
-    console.log(error)
-    process.exit(1)
+    log.error('lookup error')
+    log.error(error)
+    throw error
   }
   domainUrl.hostname = ip
 
   return domainUrl.toString()
 }
 
+/**
+ * downloadFile asynchronously downloads the content from the given url
+ * - the function includes a retry mechanism in order to handle temporary errors
+ * - currently three attempts are made to download before finally failing
+ * - between two attempts there is a wait time of 10ms
+ * @param  {String} url the url to download the data from
+ * @return
+ */
 async function downloadFile(url) {
-
   var attempts = 0
   for(;;) {
     try {
@@ -95,8 +109,17 @@ async function downloadFile(url) {
   }
 }
 
+/**
+ * reportMain asynchronously downloads the report data in an endless lookup
+ */
 async function reportMain() {
   for(;;) {
+    // Using the IP address instead of domain is necessary as with each https
+    // request for data based on the url a DNS resolve is performed. After
+    // several thousand requests within a short time the DNS server rejects
+    // resvolving domain names to IP addresses
+    // --> work around: query IP once per cyclce and perform http requests based
+    // on the IP instead of the domain name
     const ipBaseUrl = await convertDomainUrlToIPUrl(DWD_REPORT_BASE_URL)
 
     var listOfFiles = null
@@ -120,9 +143,9 @@ async function reportMain() {
 
     // step 2: download
     for (var i = 0; i < listOfFiles.length; i++) {
+
       // wait before processing next file
       await delay(1)
-
 
       const url = listOfFiles[i]
 
@@ -133,7 +156,6 @@ async function reportMain() {
         var dateString = table[3][0]
         var timeString = table[3][1]
       } catch (error) {
-        console.log(error)
         log.error({error: error, url: url}, 'an error occured while downloading and parse the csv file')
         continue
       }
@@ -169,9 +191,17 @@ async function reportMain() {
   }
 }
 
-
+/**
+ * reportMain asynchronously downloads the forecast data in an endless lookup
+ */
 async function forecastMain() {
   for(;;) {
+    // Using the IP address instead of domain is necessary as with each https
+    // request for data based on the url a DNS resolve is performed. After
+    // several thousand requests within a short time the DNS server rejects
+    // resvolving domain names to IP addresses
+    // --> work around: query IP once per cyclce and perform http requests based
+    // on the IP instead of the domain name
     const ipBaseUrl = await convertDomainUrlToIPUrl(DWD_FORECAST_BASE_URL)
 
     var listOfFiles = null
@@ -241,25 +271,35 @@ async function forecastMain() {
 }
 
 
-async function gribMain() {
+/**
+ * COSMO_DEMain asynchronously downloads the COSMO DE data in an endless lookup
+ */
+async function COSMO_DEMain() {
   for(;;) {
-    const ipBaseUrl = await convertDomainUrlToIPUrl(DWD_GRIB_BASE_URL)
+
+    // Using the IP address instead of domain is necessary as with each https
+    // request for data based on the url a DNS resolve is performed. After
+    // several thousand requests within a short time the DNS server rejects
+    // resvolving domain names to IP addresses
+    // --> work around: query IP once per cyclce and perform http requests based
+    // on the IP instead of the domain name
+    const ipBaseUrl = await convertDomainUrlToIPUrl(DWD_COSMO_DE_BASE_URL)
 
     var listOfFiles = null
 
-    // step 1: crawl list of available grib files
+    // step 1: crawl list of available grib2 files
     for (;;) {
       log.info('crawling list of available files at ' + ipBaseUrl + ' ...')
 
       try {
-        listOfFiles = await dwd_grib.crawlListOfGribFilePaths(ipBaseUrl)
+        listOfFiles = await dwd_grib.crawlListOfGrib2FilePaths(ipBaseUrl)
         break
       } catch (error) {
-        log.error(error, 'crawling list of grib files failed')
+        log.error(error, 'crawling list of grib2 files failed')
       }
 
-      log.info('waiting ' + GRIB_CRAWL_RETRY_WAIT_MINUTES + ' before starting next retry for grib')
-      await delay(GRIB_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
+      log.info('waiting ' + COSMO_DE_CRAWL_RETRY_WAIT_MINUTES + ' before starting next retry for grib')
+      await delay(COSMO_DE_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
     }
 
     log.info('crawl for grib revealed ' + listOfFiles.length + ' files')
@@ -300,11 +340,13 @@ async function gribMain() {
     }
 
     // wait COMPLETE_CYCLE_WAIT_MINUTES minutes before polling for new files
-    log.info('waiting ' + GRIB_COMPLETE_CYCLE_WAIT_MINUTES + ' minutes before starting next grib cycle')
-    await delay(GRIB_COMPLETE_CYCLE_WAIT_MINUTES * 60 * 1000)
+    log.info('waiting ' + COSMO_DE_COMPLETE_CYCLE_WAIT_MINUTES + ' minutes before starting next COSMO DE cycle')
+    await delay(COSMO_DE_COMPLETE_CYCLE_WAIT_MINUTES * 60 * 1000)
   }
 }
 
+
+// start the three concurrent loops to query forecast, report and COSMO DE data
 forecastMain()
 reportMain()
-gribMain()
+COSMO_DEMain()
