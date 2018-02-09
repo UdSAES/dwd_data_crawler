@@ -18,3 +18,80 @@ Sample call:
 ```
 $ DOWNLOAD_DIRECTORY_BASE_PATH=/mnt/download_volume node index.js
 ```
+
+## Basic idea
+The basic idea behind dwd_data_crawler is to query and store data from
+opendata.dwd.de. This allows for building a local data storage of historical and
+forecast data for later use in research and development. opendata.dwd.de is a
+free service offered by DWD which provides weather and climate data based on
+real measurements and forecast calculations.
+
+As data on opendata.dwd.de is overwritten on a regular basis, dwd_data_crawler
+fetches data cyclically. As opendata.dwd.de stores data for different points in
+time using the same file path, dwd_data_crawler uses a slightly different folder
+structure than opendata.dwd.de.
+
+### /weather/local_forecasts/poi
+#### Filepath on opendata.dwd.de
+`/weather/local_forecasts/poi/$STATION_ID-MOSMIX.csv`
+
+where
+* `$STATION_ID` is the station id the forecast data refers to.
+
+#### Filepath on local storage
+`$DOWNLOAD_DIRECTORY_BASE_PATH/weather/local_forecasts/poi/$YYYY$MM$DD$HH/$STATION_ID-MOSMIX.csv`
+
+where
+* `$DOWN_LOAD_DIRECTORY_BASE_PATH` is the base path for the downloaded data on the local storage
+* `$YYYY` is the 4 digit year the first forecast data refers to
+* `$MM` is the 2 digit month the first forecast data refers to (01 to 12)
+* `$DD` is the 2 digit day of month the first forecast data refers to (01 to 31)
+* `$HH` is the 2 digit hour of day the first foreact data refers to (06 or 18)
+* `$STATION_ID` is the station id the forecast data refers to.
+
+If you want to load the forecast for 9th February 2018 starting at 6 am (UTC) of station 01271 the corresponding data can be found in the file `/$DOWNLOAD_DIRECTORY_BASE_PATH/weather/local_forecasts/poi/2018020906/01271-MOSMIX.csv`
+
+### /weather/weather_reports/poi
+#### Filepath on opendata.dwd.de
+`/weather/weather_reports/poi/$STATION_ID-BEOB.csv`
+
+where
+* `$STATION_ID` is the station id the report data refers to.
+
+#### Filepath on local storage
+`$DOWNLOAD_DIRECTORY_BASE_PATH/weather/weather_reports/poi/YYYYMMDD/STATION_ID-MOSMIX.csv`
+
+where
+* `$DOWN_LOAD_DIRECTORY_BASE_PATH` is the base path for the downloaded data on the local storage
+* `$YYYY` is the 4 digit year the first report data refers to
+* `$MM` is the 2 digit month the first report data refers to (01 to 12)
+* `$DD` is the 2 digit day of month the first report data refers to (01 to 31)
+* `$STATION_ID` is the station id the report data refers to.
+
+If you want to load the reported data for 9th February 2018 (UTC) of station 01271 the corresponding data can be found in the file `/$DOWNLOAD_DIRECTORY_BASE_PATH/weather/local_forecasts/poi/20180209/01271-BEOB.csv`
+
+### /weather/cosmo/de/grib
+#### Filepath on opendata.dwd.de
+`/weather/cosmo/de/grib/$HH/$dwd_voi/COSMODE_single_level_elements_$DWD_VOI_$YYYY$MM$DD$HH_$FH.grib2.bz2`
+
+where
+* `$HH` is the fore cast run hour the data refers to (00, 03, 06, 09, 12, 15, 18, 21)
+* `$dwd_voi` is the encoding of the value of interest in lowercase letters (e.g. alb_rad)
+* `$DWD_VOI` is the encoding of the value of interest in uppercase letters (e.g. ALB_RAD)
+* `$YYYY` is the 4 digit year of the forecast run the data refers to
+* `$MM` is the 2 digit month of the forecast run the data refers to (01 to 12)
+* `$DD` is the 2 digit day of month of the forecast run the data refers to (01 to 31)
+* `$FH` is the 3 digit forecast hour of the forecast run the data refers to (e.g. 021 for forecast in 21 hours as of $YYYY-$MM-$DD $HH:00:00)
+
+#### Filepath on local storage
+`/$DOWNLOAD_DIRECTORY_BASE_PATH/cosmo/de/grib/$YYYY$MM$DD$HH/$dwd_voi/COSMODE_single_level_elements_$DWD_VOI_$YYYY$MM$DD$HH_$FH.grib2.bz2`
+
+where
+* `$DOWN_LOAD_DIRECTORY_BASE_PATH` is the base path for the downloaded data on the local storage
+* `$YYYY` is the 4 digit year of the forecast run the data refers to
+* `$MM` is the 2 digit month of the forecast run the data refers to (01 to 12)
+* `$DD` is the 2 digit day of month of the forecast run the data refers to (01 to 31)
+* `$HH` is the fore cast run hour the data refers to (00, 03, 06, 09, 12, 15, 18, 21)
+* `$dwd_voi` is the encoding of the value of interest in lowercase letters (e.g. alb_rad)
+* `$DWD_VOI` is the encoding of the value of interest in uppercase letters (e.g. ALB_RAD)
+* `$FH` is the 3 digit forecast hour of the forecast run the data refers to (e.g. 021 for forecast in 21 hours as of $YYYY-$MM-$DD $HH:00:00)

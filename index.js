@@ -150,7 +150,6 @@ async function reportMain() {
       await delay(1)
 
       const url = listOfFiles[i]
-
       try {
         var binaryContent = await downloadFile(url)
         var textContent = binaryContent.toString('utf8')
@@ -164,13 +163,14 @@ async function reportMain() {
 
       if (timeString !== '00:00') {
         continue
-
       }
-      dateString = table[4][0]
+      dateString = table[table.length - 1][0]
+      const dateStringTokens = dateString.split('.')
+      dateString = dateStringTokens[2] + dateStringTokens[1] + dateStringTokens[0]
 
       const urlTokens = url.split('/')
       const fileName = urlTokens[urlTokens.length - 1]
-      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'reports', dateString)
+      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather', 'weather_reports', 'poi', dateString)
       const targetFilePath = path.join(directoryPath, fileName)
       const exists = await fs.pathExists(targetFilePath)
 
@@ -241,6 +241,14 @@ async function forecastMain() {
         textContent = textContent.replace(/\r\n/g, '\n')
         const lines = textContent.split('\n')
         var dateString = lines[3].split(';')[0]
+
+        const dateStringTokens = dateString.split('.')
+        if (dateStringTokens[2].length === 2) {
+          dateStringTokens[2] = "20" + dateStringTokens[2]
+        }
+        dateString = dateStringTokens[2] + dateStringTokens[1] + dateStringTokens[0]
+
+        var hourString = lines[3].split(';')[1].split(':')[0]
       } catch (error) {
         log.error({error: error, url: url}, 'an error occured while downloading and parse the csv file')
         continue
@@ -248,7 +256,7 @@ async function forecastMain() {
 
       const urlTokens = url.split('/')
       const fileName = urlTokens[urlTokens.length - 1]
-      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'forecasts', dateString)
+      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather', 'local_forecasts', 'poi', dateString + hourString)
       const targetFilePath = path.join(directoryPath, fileName)
 
       const exists = await fs.pathExists(targetFilePath)
@@ -317,7 +325,7 @@ async function COSMO_DEMain() {
       const fileNameTokens = urlTokens[urlTokens.length - 1].split('_')
       const dateTimeString = fileNameTokens[fileNameTokens.length - 2]
 
-      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'grib', dateTimeString, sourceQuantity)
+      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'cosmo', 'de', 'grib', dateTimeString, sourceQuantity)
       const filePath =  path.join(
         directoryPath,
         urlTokens[urlTokens.length - 1].replace('bz2', 'lz4')
@@ -330,32 +338,17 @@ async function COSMO_DEMain() {
       }
 
       try {
-        log.info('downloading ' + url)
-        var content = await downloadFile(url)
-      } catch (error) {
-        log.error(error, 'downloading ' + url + ' failed')
-        continue
-      }
-
-      try {
+        log.info('handling file ' + url)
+        const content = await downloadFile(url)
         await fs.ensureDir(directoryPath)
         await fs.writeFile(filePath.replace('lz4', 'bz2'), content, {encoding: null})
         await execFile('bzip2', ['-d', filePath.replace('lz4', 'bz2')])
         await execFile('lz4', ['-z9', filePath.replace('\.lz4', ''), filePath])
         await fs.unlink(filePath.replace('\.lz4', ''))
       } catch (error) {
-        log.error(error, 'decompressing bzip2 file ' + url + ' failed')
+        log.error(error, 'hanlding file ' + url + ' failed')
         continue
       }
-
-      /*
-      try {
-        await fs.writeFile(targetFilePath, content, {encoding: null})
-      } catch (error) {
-        log.fatal({error: error, filePath: filePath}, 'storing file at ' + filePath + ' failed')
-        process.exit(1)
-      }
-      */
     }
 
     // wait COMPLETE_CYCLE_WAIT_MINUTES minutes before polling for new files
