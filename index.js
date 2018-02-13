@@ -286,7 +286,6 @@ async function forecastMain() {
  */
 async function COSMO_DEMain() {
   for(;;) {
-
     // Using the IP address instead of domain is necessary as with each https
     // request for data based on the url a DNS resolve is performed. After
     // several thousand requests within a short time the DNS server rejects
