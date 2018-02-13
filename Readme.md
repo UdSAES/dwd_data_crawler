@@ -97,4 +97,18 @@ where
 * `$FH` is the 3 digit forecast hour of the forecast run the data refers to (e.g. 021 for forecast in 21 hours as of $YYYY-$MM-$DD $HH:00:00)
 
 ## How it works
+The dwd_data_crawler is implemented as three endless loops that run concurrently in a single node.js proces.
 ![main](./docs/main.svg "main routine of index.js")
+
+* reportMain cyclically queries the data from /weather/weather_reports/poi
+* forecastMain cyclically queries the data from /weather/local_forecasts/poi
+* COSMO_DEMain cyclically queries the data from /weather/cosmo/de/grib
+
+### reportMain
+![reportMain](./docs/report_loop.svg "Endless loop for querying reports")
+
+### forecastMain
+![forecastMain](./docs/forecast_loop.svg "Endless loop for querying forecasts")
+
+### COSMO_DEMain
+![COSMO_DEMain](./docs/cosmo_de_loop.svg "Endless loop for querying cosmo de forecasts")
