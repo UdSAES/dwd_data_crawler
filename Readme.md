@@ -95,3 +95,6 @@ where
 * `$dwd_voi` is the encoding of the value of interest in lowercase letters (e.g. alb_rad)
 * `$DWD_VOI` is the encoding of the value of interest in uppercase letters (e.g. ALB_RAD)
 * `$FH` is the 3 digit forecast hour of the forecast run the data refers to (e.g. 021 for forecast in 21 hours as of $YYYY-$MM-$DD $HH:00:00)
+
+## How it works
+![main](./docs/main.svg "main routine of index.js")
