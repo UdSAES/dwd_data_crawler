@@ -105,7 +105,12 @@ The dwd_data_crawler is implemented as three endless loops that run concurrently
 * COSMO_DEMain cyclically queries the data from /weather/cosmo/de/grib
 
 ### reportMain
+Reports are queried in an endless loop as shown in the followig state chart.
 ![reportMain](./docs/report_loop.svg "Endless loop for querying reports")
+
+At the beginning of each loop the IP address of opendata.dwd.de is queried, as due to too many requests the DNS refuses services, when all requests are made by domain name.
+
+When the IP address is known all available paths of report files are queried as a list of items. Afterwards, for each item in the list a download is performed. The download is implemented in a way, that three attempts are made to download the (this due to potential rate limiting being active at DWD). Once all items have been downloaded successully, a pause is initiated with a parameterizable wait time of `REPORT_COMPLETE_CYCLE_WAIT_MINUTES`.
 
 ### forecastMain
 ![forecastMain](./docs/forecast_loop.svg "Endless loop for querying forecasts")
