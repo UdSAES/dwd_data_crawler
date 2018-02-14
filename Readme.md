@@ -110,7 +110,7 @@ where
 
 ## How it works
 The dwd_data_crawler is implemented as three endless loops that run concurrently in a single node.js proces.
-![main](./docs/main.svg "main routine of index.js" {width=100px})
+<img src="./docs/main.svg" width="400">
 
 * reportMain cyclically queries the data from /weather/weather_reports/poi
 * forecastMain cyclically queries the data from /weather/local_forecasts/poi
@@ -118,14 +118,14 @@ The dwd_data_crawler is implemented as three endless loops that run concurrently
 
 ### reportMain
 Reports are queried in an endless loop as shown in the followig state chart.
-![reportMain](./docs/report_loop.svg "Endless loop for querying reports")
+<img src="./docs/report_loop.svg" width="400">
 
 At the beginning of each loop the IP address of opendata.dwd.de is queried, as due to too many requests the DNS refuses services, when all requests are made by domain name.
 
 When the IP address is known all available paths of report files are queried as a list of items. Afterwards, for each item in the list a download is performed. The download is implemented in a way, that three attempts are made to download the (this due to potential rate limiting being active at DWD). Once all items have been downloaded successully, a pause is initiated with a parameterizable wait time of `REPORT_COMPLETE_CYCLE_WAIT_MINUTES`.
 
 ### forecastMain
-![forecastMain](./docs/forecast_loop.svg "Endless loop for querying forecasts")
+<img src="./docs/forecast_loop.svg" width="400">
 
 ### COSMO_DEMain
-![COSMO_DEMain](./docs/cosmo_de_loop.svg "Endless loop for querying cosmo de forecasts")
+<img src="./docs/cosmo_de_loop.svg" width="400">
