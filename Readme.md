@@ -110,7 +110,7 @@ where
 
 ## How it works
 The dwd_data_crawler is implemented as three endless loops that run concurrently in a single node.js proces.
-![main](./docs/main.svg "main routine of index.js")
+![main](./docs/main.svg "main routine of index.js" {width=100px})
 
 * reportMain cyclically queries the data from /weather/weather_reports/poi
 * forecastMain cyclically queries the data from /weather/local_forecasts/poi
