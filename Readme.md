@@ -43,7 +43,7 @@ fetches data cyclically. As opendata.dwd.de stores data for different points in
 time using the same file path, dwd_data_crawler uses a slightly different folder
 structure than opendata.dwd.de.
 
-### [link](#dataStorageStructureForecast) /weather/local_forecasts/poi
+### <a name="dataStorageStructureForecast"></a> /weather/local_forecasts/poi
 #### Filepath on opendata.dwd.de
 `/weather/local_forecasts/poi/$STATION_ID-MOSMIX.csv`
 
@@ -134,10 +134,22 @@ Forecast data are queried in an endless loop as shown in the followig state char
 
 At the beginning of each loop the IP address of opendata.dwd.de is queried, as due to too many requests the DNS refuses services, when all requests are made by domain name.
 
-When the IP address is known all available paths of forecast files are queried as a list of items. If an error occurs while querying the list of paths of report files, a wait time of `FORECAST_CRAWL_RETRY_WAIT_MINUTES` is triggered before the next attempt is made to query the list of paths of report files.
+When the IP address is known all available paths of forecast files are queried as a list of items. If an error occurs while querying the list of paths of forecast files, a wait time of `FORECAST_CRAWL_RETRY_WAIT_MINUTES` is triggered before the next attempt is made to query the list of paths of report files.
 
 Afterwards, for each item in the list a download is performed. The download is implemented in a way, that three attempts are made to download the (this due to potential rate limiting being active at DWD). Once all items have been downloaded successully, a pause is initiated with a parameterizable wait time of `FORECAST_COMPLETE_CYCLE_WAIT_MINUTES`.
                                         
+As DWD reuses paths of report files the downloaded files are stored in a slightly different file structur in order to prevent new files overriding old files. For details see [file storage for forecasts](#dataStorageStructureForecast).
 
 ### COSMO_DEMain
+Forecast data are queried in an endless loop as shown in the followig state chart.
 <img src="./docs/cosmo_de_loop.svg" width="600">
+
+At the beginning of each loop the IP address of opendata.dwd.de is queried, as due to too many requests the DNS refuses services, when all requests are made by domain name.
+
+When the IP address is known all available paths of forecast files are queried as a list of items. If an error occurs while querying the list of paths of COSMO DE files, a wait time of `COSMO_DE_CRAWL_RETRY_WAIT_MINUTES ` is triggered before the next attempt is made to query the list of paths of report files.
+
+Afterwards, for each item in the list a download is performed. The download is implemented in a way, that three attempts are made to download the (this due to potential rate limiting being active at DWD). The file provided by DWD are grib2 files compressed using bzip2. While bzip2 provides a very good compression rate, decompressing bzip2 files is rather slow. Therefore the bzip2 files are decompressed and compressed again using <a href="https://en.wikipedia.org/wiki/LZ4_(compression_algorithm)">lz4 compression algorithm</a>.
+
+Once all items have been downloaded successully, a pause is initiated with a parameterizable wait time of `COSMO_DE_COMPLETE_CYCLE_WAIT_MINUTES `.
+                                        
+As DWD reuses paths of report files the downloaded files are stored in a slightly different file structur in order to prevent new files overriding old files. For details see [file storage for COSMO DE forecasts](#dataStorageStructureCOSMODE).
