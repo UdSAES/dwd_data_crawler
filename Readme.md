@@ -7,12 +7,24 @@ dwd_data_crawler is configured by means of environment variables. Currently the
 following environment variables are supported:
  * `DOWNLOAD_DIRECTORY_BASE_PATH`: Base path of the directory where the downloaded
  files shall be stored. This is a mandatory parameter.
- * `CRAWL_RETRY_WAIT_MINUTES`: Number of minutes to wait before next attempt to
- crawl for data, when crawling data failed. This is an optional parameter.
+ * `COSMO_DE_CRAWL_RETRY_WAIT_MINUTES`: Number of **minutes** to wait before next attempt to
+ crawl for COSMO DE data, when crawling data failed. This is an optional parameter.
  Standard value is `1`.
- * `COMPLETE_CYCLE_WAIT_MINUTES`: Number of minutes to wait before start next
- crawl cycle, once the current cycle is finished. This is an optional parameter.
+ * `COSMO_DE_COMPLETE_CYCLE_WAIT_MINUTES`: Number of **minutes** to wait before start next
+ crawl cycle for COSMO DE data, once the current cycle is finished. This is an optional parameter.
  Standard values is `10`.
+ * `FORECAST_CRAWL_RETRY_WAIT_MINUTES`: Number of **minutes** to wait before next attempt to
+ crawl for forecast data, when crawling data failed. This is an optional parameter.
+ Standard value is `1`.
+ * `FORECAST_COMPLETE_CYCLE_WAIT_MINUTES`: Number of **minutes** to wait before start next
+ crawl cycle for forecast data, once the current cycle is finished. This is an optional parameter.
+ Standard values is `120`.
+ * `REPORT_CRAWL_RETRY_WAIT_MINUTES`: Number of **minutes** to wait before next attempt to
+ crawl for report data, when crawling data failed. This is an optional parameter.
+ Standard value is `1`.
+ * `REPORT_COMPLETE_CYCLE_WAIT_MINUTES`: Number of **minutes** to wait before start next
+ crawl cycle for report data, once the current cycle is finished. This is an optional parameter.
+ Standard values is `30`.
 
 Sample call:
 ```
