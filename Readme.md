@@ -65,7 +65,7 @@ As DWD reuses paths of report files the downloaded files are stored in a slightl
 
 ### forecastMain
 Forecast data are queried in an endless loop as shown in the followig state chart.
-<img src="./docs/forecast_loop.svg" width="600>
+<img src="./docs/forecast_loop.svg" width="600">
 
 At the beginning of each loop the IP address of opendata.dwd.de is queried, as due to too many requests the DNS refuses services, when all requests are made by domain name.
 
