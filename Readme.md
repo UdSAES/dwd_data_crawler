@@ -101,7 +101,7 @@ where
 `$DOWNLOAD_DIRECTORY_BASE_PATH/weather/local_forecasts/poi/$YYYY$MM$DD$HH/$STATION_ID-MOSMIX.csv`
 
 where
-* `$DOWN_LOAD_DIRECTORY_BASE_PATH` is the base path for the downloaded data on the local storage
+* `$DOWNLOAD_DIRECTORY_BASE_PATH` is the base path for the downloaded data on the local storage
 * `$YYYY` is the 4 digit year the first forecast data refers to
 * `$MM` is the 2 digit month the first forecast data refers to (01 to 12)
 * `$DD` is the 2 digit day of month the first forecast data refers to (01 to 31)
