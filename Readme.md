@@ -26,7 +26,7 @@ following environment variables are supported:
  crawl cycle for report data, once the current cycle is finished. This is an optional parameter.
  Standard values is `30`.
 
-Sample call:
+Sample call to run with standard settings for optional parameters:
 ```
 $ DOWNLOAD_DIRECTORY_BASE_PATH=/mnt/download_volume node index.js
 ```
