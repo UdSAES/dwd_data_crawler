@@ -11,6 +11,7 @@ var log = bunyan.createLogger({name: 'dwd_data_crawler'})
 const {promisify} = require('util')
 const _ = require('lodash')
 const dwd_grib = require('./lib/dwd_grib')
+const dwd_csv = require('./lib/dwd_csv')
 const delay = require('delay')
 const fs = require('fs-extra')
 const processenv = require('processenv')
@@ -19,6 +20,7 @@ const path = require('path')
 const lookup = promisify(require('dns').lookup)
 const {URL} = require('url')
 const execFile = promisify(require('child_process').execFile)
+const moment = require('moment-timezone')
 
 
 const DWD_COSMO_DE_BASE_URL = 'https://opendata.dwd.de/weather/cosmo/de/grib/'
@@ -153,37 +155,67 @@ async function reportMain() {
       try {
         var binaryContent = await downloadFile(url)
         var textContent = binaryContent.toString('utf8')
-        var table = dwd_grib.convertCsv2Json(textContent, ';')
-        var dateString = table[3][0]
-        var timeString = table[3][1]
+        var table = dwd_csv.parseCSV(textContent)
       } catch (error) {
+        console.log(error)
         log.error({error: error, url: url}, 'an error occured while downloading and parse the csv file')
         continue
       }
 
-      if (timeString !== '00:00') {
-        continue
-      }
-      dateString = table[table.length - 1][0]
-      const dateStringTokens = dateString.split('.')
-      dateString = dateStringTokens[2] + dateStringTokens[1] + dateStringTokens[0]
+      // iterate all content lines and extract dates
+      var dates = {}
+      _.forEach(table.slice(3), (row) => {
+        try {
+          var m = moment.tz(row[0], 'DD.MM.YYYY', 'UTC')
+        } catch (error) {
+          log.error({error: error, url: url}, 'an error occured while handling the csv file')
+          return
+        }
 
-      const urlTokens = url.split('/')
-      const fileName = urlTokens[urlTokens.length - 1]
-      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather', 'weather_reports', 'poi', dateString)
-      const targetFilePath = path.join(directoryPath, fileName)
-      const exists = await fs.pathExists(targetFilePath)
+        if (!m.isValid()) {
+          return
+        }
 
-      if (exists) {
-        continue
-      }
+        const dateString = m.format('YYYYMMDD')
+        dates[dateString] = dateString
+      })
 
-      try {
-        await fs.ensureDir(directoryPath)
-        await fs.writeFile(targetFilePath, binaryContent, {encoding: null})
-      } catch (error) {
-        log.fatal({error: error, filePath: targetFilePath}, 'storing file at ' + targetFilePath + ' failed')
-        process.exit(1)
+      dates = _.keys(dates)
+
+      for(var j = 0; j < dates.length; j++) {
+        const dateString = dates[j]
+        const urlTokens = url.split('/')
+        const fileName = urlTokens[urlTokens.length - 1]
+        const targetDirectory = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather', 'weather_reports', 'poi', dateString)
+        const targetFilePath = path.join(targetDirectory, fileName)
+
+        // check if target file already exists
+        await fs.ensureDir(targetDirectory)
+        const exists = await fs.pathExists(targetFilePath)
+        if (exists) {
+          try {
+            const currentContent = await fs.readFile(targetFilePath, {encoding: 'utf8'})
+            const newContent = dwd_csv.mergeCSVContents(currentContent, textContent, moment.tz(dateString, 'YYYYMMDD', 'UTC').format('DD.MM.YY'))
+            await fs.writeFile(targetFilePath, newContent, {encoding: 'utf8'})
+          } catch (error) {
+            log.error({error: error.toString(), url: url}, 'an error occured while reading, merging, and writing the existing file')
+          }
+        } else {
+          try {
+            const newTable = table.slice(0,3)
+            _.forEach(table.slice(3), (row) => {
+
+              if (row[0] !== moment.tz(dateString, 'YYYYMMDD', 'UTC').format('DD.MM.YY')) {
+                return
+              }
+
+              newTable.push(row)
+            })
+            await fs.writeFile(targetFilePath, dwd_csv.generateCSV(newTable), {encoding: 'utf8'})
+          } catch (error) {
+            log.error({error: error, url: url}, 'an error occured while writing the new file')
+          }
+        }
       }
     }
 
@@ -358,6 +390,6 @@ async function COSMO_DEMain() {
 
 
 // start the three concurrent loops to query forecast, report and COSMO DE data
-forecastMain()
+//forecastMain()
 reportMain()
-COSMO_DEMain()
+//COSMO_DEMain()
