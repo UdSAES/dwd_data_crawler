@@ -390,6 +390,6 @@ async function COSMO_DEMain() {
 
 
 // start the three concurrent loops to query forecast, report and COSMO DE data
-//forecastMain()
+forecastMain()
 reportMain()
-//COSMO_DEMain()
+COSMO_DEMain()
