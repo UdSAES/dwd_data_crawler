@@ -4,6 +4,9 @@ dwd_data_crawler is a micro service to crawl data from DWD (Deutscher Wetter
 
 ![Set of logos](./docs/logos_uds_aes_designetz_bmwi.png)
 
+## License
+See the [LICENSE](./LICENSE) file for license rights and limitations (MIT).
+
 ## Dependencies
 Part of data on opendata.dwd.de is provided compressed with `bzip2`. `bzip2` has
 a very high compression rate but it is rather slow with decompression speed. In
