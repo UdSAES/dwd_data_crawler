@@ -13,8 +13,8 @@ As of today we, the authors of `dwd_data_crawler`, are not aware of high
 performance implementation fo `bzip2` and `lz4` in plain JavaScript and/or
 node.js. Therefore we have decided to perform `bzip2` and `lz4`
 decompression/compression by calling LINUX `bzip2` and `lz4` commands via
-`child_compress.execFile`. Thus, `bzip2` and `lz4` commands form dependencies
-of `dwd_data_crawler`.
+`child_compress.execFile`. **Thus, `bzip2` and `lz4` commands form dependencies
+of `dwd_data_crawler`.**
 
 ## Usage
 dwd_data_crawler is configured by means of environment variables. Currently the
