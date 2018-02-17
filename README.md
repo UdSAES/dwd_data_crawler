@@ -2,6 +2,20 @@
 dwd_data_crawler is a micro service to crawl data from DWD (Deutscher Wetter
   Dienst) and store it for later use in a file system.
 
+## Dependencies
+Part of data on opendata.dwd.de is provided compressed with `bzip2`. `bzip2` has
+a very high compression rate but it is rather slow with decompression speed. In
+order to increase performance the downloaded `bzip2` data is decompressed and
+compressed with `lz4` again. `lz4` does not have a compression rate as good as
+`bzip2` but is an order of magnitude faster for decompression.
+
+As of today we, the authors of `dwd_data_crawler`, are not aware of high
+performance implementation fo `bzip2` and `lz4` in plain JavaScript and/or
+node.js. Therefore we have decided to perform `bzip2` and `lz4`
+decompression/compression by calling LINUX `bzip2` and `lz4` commands via
+`child_compress.execFile`. Thus, `bzip2` and `lz4` commands form dependencies
+of `dwd_data_crawler`.
+
 ## Usage
 dwd_data_crawler is configured by means of environment variables. Currently the
 following environment variables are supported:
@@ -72,7 +86,7 @@ At the beginning of each loop the IP address of opendata.dwd.de is queried, as d
 When the IP address is known all available paths of forecast files are queried as a list of items. If an error occurs while querying the list of paths of forecast files, a wait time of `FORECAST_CRAWL_RETRY_WAIT_MINUTES` is triggered before the next attempt is made to query the list of paths of report files.
 
 Afterwards, for each item in the list a download is performed. The download is implemented in a way, that three attempts are made to download the (this due to potential rate limiting being active at DWD). Once all items have been downloaded successully, a pause is initiated with a parameterizable wait time of `FORECAST_COMPLETE_CYCLE_WAIT_MINUTES`.
-                                        
+
 As DWD reuses paths of report files the downloaded files are stored in a slightly different file structur in order to prevent new files overriding old files. For details see [file storage for forecasts](#dataStorageStructureForecast).
 
 ### COSMO_DEMain
@@ -86,7 +100,7 @@ When the IP address is known all available paths of forecast files are queried a
 Afterwards, for each item in the list a download is performed. The download is implemented in a way, that three attempts are made to download the (this due to potential rate limiting being active at DWD). The file provided by DWD are grib2 files compressed using bzip2. While bzip2 provides a very good compression rate, decompressing bzip2 files is rather slow. Therefore the bzip2 files are decompressed and compressed again using <a href="https://en.wikipedia.org/wiki/LZ4_(compression_algorithm)">lz4 compression algorithm</a>.
 
 Once all items have been downloaded successully, a pause is initiated with a parameterizable wait time of `COSMO_DE_COMPLETE_CYCLE_WAIT_MINUTES `.
-                                        
+
 As DWD reuses paths of report files the downloaded files are stored in a slightly different file structur in order to prevent new files overriding old files. For details see [file storage for COSMO DE forecasts](#dataStorageStructureCOSMODE).
 
 ## Structure of file storage
@@ -154,4 +168,3 @@ where
 * `$dwd_voi` is the encoding of the value of interest in lowercase letters (e.g. alb_rad)
 * `$DWD_VOI` is the encoding of the value of interest in uppercase letters (e.g. ALB_RAD)
 * `$FH` is the 3 digit forecast hour of the forecast run the data refers to (e.g. 021 for forecast in 21 hours as of $YYYY-$MM-$DD $HH:00:00)
-
