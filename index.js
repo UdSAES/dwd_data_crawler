@@ -372,7 +372,7 @@ async function COSMO_DEMain() {
       const fileNameTokens = urlTokens[urlTokens.length - 1].split('_')
       const dateTimeString = fileNameTokens[fileNameTokens.length - 2]
 
-      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'cosmo', 'de', 'grib', dateTimeString, sourceQuantity)
+      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather', 'cosmo', 'de', 'grib', dateTimeString, sourceQuantity)
       const filePath =  path.join(
         directoryPath,
         urlTokens[urlTokens.length - 1].replace('bz2', 'lz4')
