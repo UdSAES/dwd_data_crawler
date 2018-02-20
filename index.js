@@ -389,8 +389,8 @@ async function COSMO_DEMain() {
         await fs.ensureDir(directoryPath)
         await fs.writeFile(filePath.replace('lz4', 'bz2'), content, {encoding: null})
         await execFile('bzip2', ['-d', filePath.replace('lz4', 'bz2')])
-        await execFile('lz4', ['-z9', filePath.replace('\.lz4', ''), filePath])
-        await fs.unlink(filePath.replace('\.lz4', ''))
+        await execFile('lz4', ['-z9', filePath.replace('lz4', ''), filePath])
+        await fs.unlink(filePath.replace('lz4', ''))
       } catch (error) {
         log.error(error, 'hanlding file ' + url + ' failed')
         continue
