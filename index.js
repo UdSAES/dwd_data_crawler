@@ -62,8 +62,10 @@ if (_.isNil(DOWNLOAD_DIRECTORY_BASE_PATH)) {
 
 log.info('download directory base path is: ' +  DOWNLOAD_DIRECTORY_BASE_PATH)
 
-function getDataForLocationInGrib(grib, lo, la) {
-  const header = grib.header
+
+/* We need this for later use
+ function getDataForLocationInGrib(grib, lo, la) {
+   const header = grib.header
   const data = grib.data
 
   const numberOfColumns = 1 + Math.round((header.lo2 - header.lo1) / header.dx)
@@ -72,7 +74,7 @@ function getDataForLocationInGrib(grib, lo, la) {
   const row = Math.round((la - header.la1) / header.dy)
 
   return data[(numberOfColumns * row) + column]
-}
+}*/
 
 
 /**
