@@ -173,7 +173,6 @@ async function reportMain() {
         var textContent = binaryContent.toString('utf8')
         var table = dwd_csv.parseCSV(textContent)
       } catch (error) {
-        console.log(error)
         log.error({error: error, url: url}, 'an error occured while downloading and parse the csv file')
         continue
       }
@@ -292,7 +291,7 @@ async function forecastMain() {
 
         const dateStringTokens = dateString.split('.')
         if (dateStringTokens[2].length === 2) {
-          dateStringTokens[2] = "20" + dateStringTokens[2]
+          dateStringTokens[2] = '20' + dateStringTokens[2]
         }
         dateString = dateStringTokens[2] + dateStringTokens[1] + dateStringTokens[0]
 
