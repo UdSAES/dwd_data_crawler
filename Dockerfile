@@ -1,11 +1,21 @@
-FROM node:9.3.0-alpine
+FROM node:9.6.1-alpine
+
 MAINTAINER Florian Wagner
+
 RUN mkdir /mnt/downloads && chown node:node /mnt/downloads
-VOLUME /mnt/downloads
-USER node
-RUN mkdir /home/node/app
-COPY ./ /home/node/app/
-WORKDIR /home/node/app
-RUN npm install
+
 ENV DOWNLOAD_DIRECTORY_BASE_PATH=/mnt/downloads
+
+USER node
+
+RUN mkdir /home/node/app
+
+WORKDIR /home/node/app
+
+COPY ./package.json /home/node/app
+
+RUN npm install
+
+COPY ./ /home/node/app/
+
 ENTRYPOINT node index.js
