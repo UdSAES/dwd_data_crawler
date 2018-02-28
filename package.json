@@ -18,7 +18,7 @@
     "moment-timezone": "^0.5.14",
     "processenv": "^0.1.1",
     "request": "^2.83.0",
-    "request-promise-native": "^1.0.5",
+    "request-promise-native": "^1.0.5"
   },
   "devDependencies": {
     "eslint": "^4.18.0"
