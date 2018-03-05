@@ -2,7 +2,7 @@ FROM node:9.6.1-alpine
 
 MAINTAINER Florian Wagner
 
-RUN apk add --no-cache make gcc g++ python
+RUN apk add --no-cache make gcc g++ python bzip2 lz4
 
 RUN mkdir /mnt/downloads && chown node:node /mnt/downloads
 
