@@ -142,7 +142,13 @@ async function reportMain() {
     // resvolving domain names to IP addresses
     // --> work around: query IP once per cyclce and perform http requests based
     // on the IP instead of the domain name
-    const ipBaseUrl = await convertDomainUrlToIPUrl(DWD_REPORT_BASE_URL)
+    try {
+      var ipBaseUrl = await convertDomainUrlToIPUrl(DWD_REPORT_BASE_URL)
+    } catch (error) {
+      log.error(error, 'resolving ip base path failed')
+      await delay(REPORT_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
+      continue
+    }
 
     var listOfFiles = null
 
@@ -253,7 +259,13 @@ async function forecastMain() {
     // resvolving domain names to IP addresses
     // --> work around: query IP once per cyclce and perform http requests based
     // on the IP instead of the domain name
-    const ipBaseUrl = await convertDomainUrlToIPUrl(DWD_FORECAST_BASE_URL)
+    try {
+      var ipBaseUrl = await convertDomainUrlToIPUrl(DWD_FORECAST_BASE_URL)
+    } catch (error) {
+      log.error(error, 'resolving ip base path failed')
+      await delay(FORECAST_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
+      continue
+    }
 
     var listOfFiles = null
 
@@ -341,7 +353,15 @@ async function COSMO_DEMain() {
     // resvolving domain names to IP addresses
     // --> work around: query IP once per cyclce and perform http requests based
     // on the IP instead of the domain name
-    const ipBaseUrl = await convertDomainUrlToIPUrl(DWD_COSMO_DE_BASE_URL)
+
+    try {
+      var ipBaseUrl = await convertDomainUrlToIPUrl(DWD_COSMO_DE_BASE_URL)
+    } catch (error) {
+      log.error(error, 'resolving ip base path failed')
+      await delay(COSMO_DE_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
+      continue
+    }
+    
 
     var listOfFiles = null
 
