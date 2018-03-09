@@ -86,16 +86,9 @@ log.info('download directory base path is: ' +  DOWNLOAD_DIRECTORY_BASE_PATH)
 async function convertDomainUrlToIPUrl(domainUrlString) {
   const domainUrl = new URL(domainUrlString)
 
-  try {
-    var ip = await lookup(domainUrl.hostname)
-    ip = ip.address
-  } catch (error) {
-    log.error('lookup error')
-    log.error(error)
-    throw error
-  }
+  var ip = await lookup(domainUrl.hostname)
+  ip = ip.address
   domainUrl.hostname = ip
-
   return domainUrl.toString()
 }
 
