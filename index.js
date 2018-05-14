@@ -38,14 +38,13 @@ const {URL} = require('url')
 const execFile = promisify(require('child_process').execFile)
 const moment = require('moment-timezone')
 
-
-const DWD_COSMO_DE_BASE_URL = 'https://opendata.dwd.de/weather/cosmo/de/grib/'
+const DWD_COSMO_D2_BASE_URL = 'https://opendata.dwd.de/weather/nwp/cosmo-d2/grib/'
 const DWD_FORECAST_BASE_URL = 'https://opendata.dwd.de/weather/local_forecasts/poi/'
 const DWD_REPORT_BASE_URL = 'https://opendata.dwd.de/weather/weather_reports/poi/'
 
 const DOWNLOAD_DIRECTORY_BASE_PATH = processenv('DOWNLOAD_DIRECTORY_BASE_PATH')
-const COSMO_DE_CRAWL_RETRY_WAIT_MINUTES = processenv('COSMO_DE_CRAWL_RETRY_WAIT_MINUTES') || 1
-const COSMO_DE_COMPLETE_CYCLE_WAIT_MINUTES = processenv('COSMO_DE_COMPLETE_CYCLE_WAIT_MINUTES') || 10
+const COSMO_D2_CRAWL_RETRY_WAIT_MINUTES = processenv('COSMO_D2_CRAWL_RETRY_WAIT_MINUTES') || 1
+const COSMO_D2_COMPLETE_CYCLE_WAIT_MINUTES = processenv('COSMO_D2_COMPLETE_CYCLE_WAIT_MINUTES') || 10
 
 const FORECAST_CRAWL_RETRY_WAIT_MINUTES = processenv('FORECAST_CRAWL_RETRY_WAIT_MINUTES') || 1
 const FORECAST_COMPLETE_CYCLE_WAIT_MINUTES = processenv('FORECAST_COMPLETE_CYCLE_WAIT_MINUTES') || 120
@@ -336,9 +335,9 @@ async function forecastMain() {
 
 
 /**
- * COSMO_DEMain asynchronously downloads the COSMO DE data in an endless lookup
+ * COSMO_D2Main asynchronously downloads the COSMO D2 data in an endless lookup
  */
-async function COSMO_DEMain() {
+async function COSMO_D2Main() {
   for(;;) {
     // Using the IP address instead of domain is necessary as with each https
     // request for data based on the url a DNS resolve is performed. After
@@ -348,10 +347,10 @@ async function COSMO_DEMain() {
     // on the IP instead of the domain name
 
     try {
-      var ipBaseUrl = await convertDomainUrlToIPUrl(DWD_COSMO_DE_BASE_URL)
+      var ipBaseUrl = await convertDomainUrlToIPUrl(DWD_COSMO_D2_BASE_URL)
     } catch (error) {
       log.error(error, 'resolving ip base path failed')
-      await delay(COSMO_DE_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
+      await delay(COSMO_D2_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
       continue
     }
     
@@ -369,8 +368,8 @@ async function COSMO_DEMain() {
         log.error(error, 'crawling list of grib2 files failed')
       }
 
-      log.info('waiting ' + COSMO_DE_CRAWL_RETRY_WAIT_MINUTES + ' before starting next retry for grib')
-      await delay(COSMO_DE_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
+      log.info('waiting ' + COSMO_D2_CRAWL_RETRY_WAIT_MINUTES + ' before starting next retry for grib')
+      await delay(COSMO_D2_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
     }
 
     log.info('crawl for grib revealed ' + listOfFiles.length + ' files')
@@ -384,9 +383,21 @@ async function COSMO_DEMain() {
       const urlTokens = url.split('/')
       const sourceQuantity = urlTokens[urlTokens.length - 2]
       const fileNameTokens = urlTokens[urlTokens.length - 1].split('_')
-      const dateTimeString = fileNameTokens[fileNameTokens.length - 2]
 
-      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather', 'cosmo', 'de', 'grib', dateTimeString, sourceQuantity)
+      let dateTimeString = ''
+      if (fileNameTokens.length === 8) {
+        dateTimeString = fileNameTokens[fileNameTokens.length - 4]
+      } else if (fileNameTokens.length === 7) {
+        dateTimeString = fileNameTokens[fileNameTokens.length - 3]
+      } else if (fileNameTokens.length === 6) {
+        dateTimeString = fileNameTokens[fileNameTokens.length - 2]
+      } else {
+        log.error(new Error('file name is invalid: ' + urlTokens[urlTokens.length - 1]))
+        continue
+      }
+      
+
+      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather', 'cosmo-d2', 'grib', dateTimeString, sourceQuantity)
       const filePath =  path.join(
         directoryPath,
         urlTokens[urlTokens.length - 1].replace('bz2', 'lz4')
@@ -413,8 +424,8 @@ async function COSMO_DEMain() {
     }
 
     // wait COMPLETE_CYCLE_WAIT_MINUTES minutes before polling for new files
-    log.info('waiting ' + COSMO_DE_COMPLETE_CYCLE_WAIT_MINUTES + ' minutes before starting next COSMO DE cycle')
-    await delay(COSMO_DE_COMPLETE_CYCLE_WAIT_MINUTES * 60 * 1000)
+    log.info('waiting ' + COSMO_D2_COMPLETE_CYCLE_WAIT_MINUTES + ' minutes before starting next COSMO D2 cycle')
+    await delay(COSMO_D2_COMPLETE_CYCLE_WAIT_MINUTES * 60 * 1000)
   }
 }
 
@@ -422,4 +433,4 @@ async function COSMO_DEMain() {
 // start the three concurrent loops to query forecast, report and COSMO DE data
 forecastMain()
 reportMain()
-COSMO_DEMain()
+COSMO_D2Main()
