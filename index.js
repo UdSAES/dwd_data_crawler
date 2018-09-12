@@ -40,6 +40,7 @@ const moment = require('moment-timezone')
 
 const DWD_COSMO_D2_BASE_URL = 'https://opendata.dwd.de/weather/nwp/cosmo-d2/grib/'
 const DWD_FORECAST_BASE_URL = 'https://opendata.dwd.de/weather/local_forecasts/poi/'
+const DWD_MOSMIX_BASE_URL = 'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_L/single_stations/'
 const DWD_REPORT_BASE_URL = 'https://opendata.dwd.de/weather/weather_reports/poi/'
 
 const DOWNLOAD_DIRECTORY_BASE_PATH = processenv('DOWNLOAD_DIRECTORY_BASE_PATH')
@@ -59,7 +60,7 @@ if (_.isNil(DOWNLOAD_DIRECTORY_BASE_PATH)) {
   process.exit(EXIT_CODES.DOWNLOAD_DIRECTORY_BASE_PATH_NIL_ERROR)
 }
 
-log.info('download directory base path is: ' +  DOWNLOAD_DIRECTORY_BASE_PATH)
+log.info('download directory base path is ' +  DOWNLOAD_DIRECTORY_BASE_PATH)
 
 
 /* We need this for later use
@@ -333,6 +334,106 @@ async function forecastMain() {
   }
 }
 
+/**
+ * crawlMOSMIXasKMZ asynchronously downloads the MOSMIX_L-forecast data in an endless lookup
+ */
+async function crawlMOSMIXasKMZ() {
+  for(;;) {
+    // Using the IP address instead of domain is necessary as with each https
+    // request for data based on the url a DNS resolve is performed. After
+    // several thousand requests within a short time the DNS server rejects
+    // resvolving domain names to IP addresses
+    // --> work around: query IP once per cyclce and perform http requests based
+    // on the IP instead of the domain name
+    try {
+      var ipBaseUrl = await convertDomainUrlToIPUrl(DWD_MOSMIX_BASE_URL)
+    } catch (error) {
+      log.error(error, 'resolving IP-address for DWD_MOSMIX_BASE_URL failed')
+      await delay(FORECAST_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
+      continue
+    }
+
+    var listOfStations = null
+    var listOfFiles = []
+
+    // Crawl list of available stations
+    for (;;) {
+      log.info('crawling list of available stations at ' + ipBaseUrl + '...')
+
+      try {
+        listOfStations = await dwd_grib.crawlListOfFilePaths(ipBaseUrl)
+        break
+      } catch (error) {
+        log.error(error, 'crawling list of stations failed')
+      }
+
+      log.info('waiting ' + FORECAST_CRAWL_RETRY_WAIT_MINUTES + ' minutes before starting next retry for MOSMIX_L')
+      await delay(FORECAST_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
+    }
+
+    log.info('crawling for MOSMIX_L-forecasts revealed ' + listOfStations.length + ' stations')
+
+    // Build list of available .kmz-files
+    for (var i = 0; i < listOfStations.length; i++) {
+      const url = listOfStations[i] + 'kml/'
+      let urlElements = _.split(listOfStations[i], '/')
+      var stationID = urlElements[urlElements.length - 2]
+      // log.info('crawling available files for station ' + stationID)
+
+      try {
+        let files = await dwd_grib.crawlListOfFilePaths(url)
+        listOfFiles = _.concat(listOfFiles, files)
+      } catch (error) {
+        log.error(error, 'crawling list of files for station' + stationID + 'failed')
+      }
+    }
+
+    log.info('crawling for MOSMIX_L-forecasts revealed ' + listOfFiles.length + ' files')
+
+    // Download all files unless they already exist
+    for (var i = 0; i < listOfFiles.length; i++) {
+      await delay(1) // wait before processing next file
+
+      let url = listOfFiles[i]
+      var fileName = _.last(_.split(url, '/'))
+      var timeStamp = _.split(fileName, '_')[2]
+      var stationID = _.split(_.split(fileName, '_')[3], '.')[0]
+      var extension = _.split(fileName, '.')[1]
+      var fileNameOnDisk = stationID + '-MOSMIX.' + extension
+
+      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather', 'local_forecasts', 'mos', timeStamp)
+      const targetFilePath = path.join(directoryPath, fileNameOnDisk)
+
+      const exists = await fs.pathExists(targetFilePath)
+
+      // Skip this file if it already exists, otherwise download and save it
+      if (exists) {
+        continue
+      }
+
+      try {
+        var binaryContent = await downloadFile(url)
+        log.info('downloading new forecast ' + fileName)
+      } catch (error) {
+        log.error({error: error, url: url}, 'an error occured while downloading the .kmz-file')
+        continue
+      }
+
+      try {
+        await fs.ensureDir(directoryPath)
+        await fs.writeFile(targetFilePath, binaryContent, {encoding: null})
+      } catch (error) {
+        log.fatal({error: error, filePath: targetFilePath}, 'storing file at ' + targetFilePath + ' failed')
+        process.exit(1)
+      }
+    }
+
+    // Wait COMPLETE_CYCLE_WAIT_MINUTES minutes before polling for new files
+    log.info('waiting ' + FORECAST_COMPLETE_CYCLE_WAIT_MINUTES + ' minutes before starting next forecast cycle')
+    await delay(FORECAST_COMPLETE_CYCLE_WAIT_MINUTES * 60 * 1000)
+  }
+}
+
 
 /**
  * COSMO_D2Main asynchronously downloads the COSMO D2 data in an endless lookup
@@ -353,7 +454,7 @@ async function COSMO_D2Main() {
       await delay(COSMO_D2_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
       continue
     }
-    
+
 
     var listOfFiles = null
 
@@ -395,7 +496,7 @@ async function COSMO_D2Main() {
         log.error(new Error('file name is invalid: ' + urlTokens[urlTokens.length - 1]))
         continue
       }
-      
+
 
       const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather', 'cosmo-d2', 'grib', dateTimeString, sourceQuantity)
       const filePath =  path.join(
@@ -434,3 +535,4 @@ async function COSMO_D2Main() {
 forecastMain()
 reportMain()
 COSMO_D2Main()
+crawlMOSMIXasKMZ()
