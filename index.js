@@ -130,6 +130,7 @@ async function downloadFile (url) {
  * reportMain asynchronously downloads the report data in an endless lookup
  */
 async function reportMain () {
+  log.info('start crawling measured climate data')
   for (;;) {
     // Using the IP address instead of domain is necessary as with each https
     // request for data based on the url a DNS resolve is performed. After
@@ -140,12 +141,13 @@ async function reportMain () {
     try {
       var ipBaseUrl = await convertDomainUrlToIPUrl(DWD_REPORT_BASE_URL)
     } catch (error) {
-      log.error(error, 'resolving ip base path failed')
+      log.error(error, 'resolving IP-address for DWD_REPORT_BASE_URL failed')
       await delay(REPORT_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
       continue
     }
 
     var listOfFiles = null
+    var numberOfFilesDownloaded = 0
 
     // step 1: crawl list of available grib files
     for (;;) {
@@ -162,7 +164,7 @@ async function reportMain () {
       await delay(REPORT_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
     }
 
-    log.info('crawl for reports revealed ' + listOfFiles.length + ' files')
+    log.info('crawling for reports revealed ' + listOfFiles.length + ' files')
 
     // step 2: download
     for (var i = 0; i < listOfFiles.length; i++) {
@@ -175,9 +177,10 @@ async function reportMain () {
         var textContent = binaryContent.toString('utf8')
         var table = dwd_csv.parseCSV(textContent)
       } catch (error) {
-        log.error({ error: error, url: url }, 'an error occured while downloading and parse the csv file')
+        log.error({ error: error, url: url }, 'an error occured while downloading and parsing ' + url)
         continue
       }
+      numberOfFilesDownloaded = numberOfFilesDownloaded + 1
 
       // iterate all content lines and extract dates
       var dates = {}
@@ -234,6 +237,7 @@ async function reportMain () {
         }
       }
     }
+    log.info('downloaded ' + numberOfFilesDownloaded + ' new REPORT files')
 
     // wait COMPLETE_CYCLE_WAIT_MINUTES minutes before polling for new files
     log.info('waiting ' + REPORT_COMPLETE_CYCLE_WAIT_MINUTES + ' minutes before starting next reports cycle')
@@ -410,11 +414,8 @@ async function crawlMOSMIXasKMZ () {
 
       // Skip this file if it already exists, otherwise download and save it
       if (exists) {
-        log.debug('skipping download for file ' + fileName)
         continue
       }
-
-      numberOfFilesDownloaded = numberOfFilesDownloaded + 1
 
       try {
         var binaryContent = await downloadFile(url)
@@ -431,6 +432,7 @@ async function crawlMOSMIXasKMZ () {
         log.fatal({ error: error, filePath: targetFilePath }, 'storing file at ' + targetFilePath + ' failed')
         process.exit(1)
       }
+      numberOfFilesDownloaded = numberOfFilesDownloaded + 1
     }
     log.info('downloaded ' + numberOfFilesDownloaded + ' new MOSMIX-forecasts')
 
@@ -444,6 +446,7 @@ async function crawlMOSMIXasKMZ () {
  * COSMO_D2Main asynchronously downloads the COSMO D2 data in an endless lookup
  */
 async function COSMO_D2Main () {
+  log.info('start crawling COSMO-D2-forecasts')
   for (;;) {
     // Using the IP address instead of domain is necessary as with each https
     // request for data based on the url a DNS resolve is performed. After
@@ -455,12 +458,13 @@ async function COSMO_D2Main () {
     try {
       var ipBaseUrl = await convertDomainUrlToIPUrl(DWD_COSMO_D2_BASE_URL)
     } catch (error) {
-      log.error(error, 'resolving ip base path failed')
+      log.error(error, 'resolving IP-address for DWD_COSMO_D2_BASE_URL failed')
       await delay(COSMO_D2_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
       continue
     }
 
     var listOfFiles = null
+    var numberOfFilesDownloaded = 0
 
     // step 1: crawl list of available grib2 files
     for (;;) {
@@ -477,7 +481,7 @@ async function COSMO_D2Main () {
       await delay(COSMO_D2_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
     }
 
-    log.info('crawl for grib revealed ' + listOfFiles.length + ' files')
+    log.info('crawling for grib revealed ' + listOfFiles.length + ' files')
 
     // step 2: download and store all files, if they have not been downloaded, yet
     for (var i = 0; i < listOfFiles.length; i++) {
@@ -514,7 +518,7 @@ async function COSMO_D2Main () {
       }
 
       try {
-        log.info('handling file ' + url)
+        log.debug('downloading and storing file ' + url)
         const content = await downloadFile(url)
         await fs.ensureDir(directoryPath)
         await fs.writeFile(filePath.replace('lz4', 'bz2'), content, { encoding: null })
@@ -522,13 +526,15 @@ async function COSMO_D2Main () {
         await execFile('lz4', ['-z9', filePath.replace('.lz4', ''), filePath])
         await fs.unlink(filePath.replace('.lz4', ''))
       } catch (error) {
-        log.error(error, 'hanlding file ' + url + ' failed')
+        log.error(error, 'downloading and storing file ' + url + ' failed')
         continue
       }
+      numberOfFilesDownloaded = numberOfFilesDownloaded + 1
     }
+    log.info('downloaded ' + numberOfFilesDownloaded + ' new COSMO-D2-forecasts')
 
     // wait COMPLETE_CYCLE_WAIT_MINUTES minutes before polling for new files
-    log.info('waiting ' + COSMO_D2_COMPLETE_CYCLE_WAIT_MINUTES + ' minutes before starting next COSMO D2 cycle')
+    log.info('waiting ' + COSMO_D2_COMPLETE_CYCLE_WAIT_MINUTES + ' minutes before starting next COSMO-D2 cycle')
     await delay(COSMO_D2_COMPLETE_CYCLE_WAIT_MINUTES * 60 * 1000)
   }
 }
