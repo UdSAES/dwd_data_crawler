@@ -4,7 +4,7 @@
   "description": "Micro service to cyclically query weather data at DWD (Deutscher Wetter Dienst) and store the data in a file system for later use.",
   "main": "index.js",
   "scripts": {
-    "test": "./node_modules/standard/bin/cmd.js"
+    "test": "./node_modules/standard/bin/cmd.js; ./node_modules/mocha/bin/mocha"
   },
   "author": "Florian Wagner <florian.wagner@aut.uni-saarland.de>",
   "license": "MIT",
@@ -21,6 +21,7 @@
     "request-promise-native": "^1.0.5"
   },
   "devDependencies": {
+    "mocha": "^5.2.0",
     "standard": "^12.0.1"
   },
   "standard": {
