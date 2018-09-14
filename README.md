@@ -43,7 +43,8 @@ following environment variables are supported:
  Standard value is `1`.
  * `REPORT_COMPLETE_CYCLE_WAIT_MINUTES`: Number of **minutes** to wait before start next
  crawl cycle for report data, once the current cycle is finished. This is an optional parameter.
- Standard values is `30`.
+ Standard value is `30`.
+* `LOG_LEVEL`: The [log level](https://github.com/trentm/node-bunyan#levels) to be used for this service instance. This is an optional parameter. Standard value is `info`.
 
 Sample call to run with standard settings for optional parameters:
 ```

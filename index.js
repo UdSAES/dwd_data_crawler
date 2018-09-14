@@ -21,9 +21,6 @@ const EXIT_CODES = {
   STORE_DOWNLOAD_FILE_ERROR: 2
 }
 
-var bunyan = require('bunyan')
-var log = bunyan.createLogger({ name: 'dwd_data_crawler' })
-
 const { promisify } = require('util')
 const _ = require('lodash')
 const dwd_grib = require('./lib/dwd_grib')
@@ -37,6 +34,7 @@ const lookup = promisify(require('dns').lookup)
 const { URL } = require('url')
 const execFile = promisify(require('child_process').execFile)
 const moment = require('moment-timezone')
+var bunyan = require('bunyan')
 
 const DWD_COSMO_D2_BASE_URL = 'https://opendata.dwd.de/weather/nwp/cosmo-d2/grib/'
 const DWD_FORECAST_BASE_URL = 'https://opendata.dwd.de/weather/local_forecasts/poi/'
@@ -46,20 +44,27 @@ const DWD_REPORT_BASE_URL = 'https://opendata.dwd.de/weather/weather_reports/poi
 const DOWNLOAD_DIRECTORY_BASE_PATH = processenv('DOWNLOAD_DIRECTORY_BASE_PATH')
 const COSMO_D2_CRAWL_RETRY_WAIT_MINUTES = processenv('COSMO_D2_CRAWL_RETRY_WAIT_MINUTES') || 1
 const COSMO_D2_COMPLETE_CYCLE_WAIT_MINUTES = processenv('COSMO_D2_COMPLETE_CYCLE_WAIT_MINUTES') || 10
-
 const FORECAST_CRAWL_RETRY_WAIT_MINUTES = processenv('FORECAST_CRAWL_RETRY_WAIT_MINUTES') || 1
 const FORECAST_COMPLETE_CYCLE_WAIT_MINUTES = processenv('FORECAST_COMPLETE_CYCLE_WAIT_MINUTES') || 120
-
 const REPORT_CRAWL_RETRY_WAIT_MINUTES = processenv('REPORT_CRAWL_RETRY_WAIT_MINUTES') || 1
 const REPORT_COMPLETE_CYCLE_WAIT_MINUTES = processenv('REPORT_COMPLETE_CYCLE_WAIT_MINUTES') || 30
+const LOG_LEVEL = String(processenv('LOG_LEVEL') || 'info')
+
+// Instantiate logger
+var log = bunyan.createLogger({
+  name: 'dwd_data_crawler',
+  serializers: bunyan.stdSerializers,
+  level: LOG_LEVEL
+})
+log.info('instantiation of service initiated')
 
 // check if necessery DOWNLOAD_DIRECTORY_BASE_PATH env var is given
 if (_.isNil(DOWNLOAD_DIRECTORY_BASE_PATH)) {
-  log.fatal('no download directory base path (env variable DOWNLOAD_DIRECTORY_BASE_PATH) given')
+  log.fatal('no download directory base path given (DOWNLOAD_DIRECTORY_BASE_PATH missing)')
   process.exit(EXIT_CODES.DOWNLOAD_DIRECTORY_BASE_PATH_NIL_ERROR)
+} else {
+  log.info('DOWNLOAD_DIRECTORY_BASE_PATH is set to ', DOWNLOAD_DIRECTORY_BASE_PATH)
 }
-
-log.info('download directory base path is ' + DOWNLOAD_DIRECTORY_BASE_PATH)
 
 /* We need this for later use
  function getDataForLocationInGrib(grib, lo, la) {
@@ -333,6 +338,7 @@ async function forecastMain () {
  * crawlMOSMIXasKMZ asynchronously downloads the MOSMIX_L-forecast data in an endless lookup
  */
 async function crawlMOSMIXasKMZ () {
+  log.info('start crawling MOSMIX-forecasts provided as .kmz-files')
   for (;;) {
     // Using the IP address instead of domain is necessary as with each https
     // request for data based on the url a DNS resolve is performed. After
@@ -350,6 +356,7 @@ async function crawlMOSMIXasKMZ () {
 
     var listOfStations = null
     var listOfFiles = []
+    var numberOfFilesDownloaded = 0
 
     // Crawl list of available stations
     for (;;) {
@@ -403,14 +410,17 @@ async function crawlMOSMIXasKMZ () {
 
       // Skip this file if it already exists, otherwise download and save it
       if (exists) {
+        log.debug('skipping download for file ' + fileName)
         continue
       }
 
+      numberOfFilesDownloaded = numberOfFilesDownloaded + 1
+
       try {
         var binaryContent = await downloadFile(url)
-        log.info('downloading new forecast ' + fileName)
+        log.debug('downloading new forecast ' + fileName)
       } catch (error) {
-        log.error({ error: error, url: url }, 'an error occured while downloading the .kmz-file')
+        log.error({ error: error, url: url }, 'an error occured while downloading ' + fileName)
         continue
       }
 
@@ -422,6 +432,7 @@ async function crawlMOSMIXasKMZ () {
         process.exit(1)
       }
     }
+    log.info('downloaded ' + numberOfFilesDownloaded + ' new MOSMIX-forecasts')
 
     // Wait COMPLETE_CYCLE_WAIT_MINUTES minutes before polling for new files
     log.info('waiting ' + FORECAST_COMPLETE_CYCLE_WAIT_MINUTES + ' minutes before starting next forecast cycle')
