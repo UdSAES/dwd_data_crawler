@@ -22,9 +22,9 @@ const EXIT_CODES = {
 }
 
 var bunyan = require('bunyan')
-var log = bunyan.createLogger({name: 'dwd_data_crawler'})
+var log = bunyan.createLogger({ name: 'dwd_data_crawler' })
 
-const {promisify} = require('util')
+const { promisify } = require('util')
 const _ = require('lodash')
 const dwd_grib = require('./lib/dwd_grib')
 const dwd_csv = require('./lib/dwd_csv')
@@ -34,7 +34,7 @@ const processenv = require('processenv')
 const request = require('request-promise-native')
 const path = require('path')
 const lookup = promisify(require('dns').lookup)
-const {URL} = require('url')
+const { URL } = require('url')
 const execFile = promisify(require('child_process').execFile)
 const moment = require('moment-timezone')
 
@@ -53,15 +53,13 @@ const FORECAST_COMPLETE_CYCLE_WAIT_MINUTES = processenv('FORECAST_COMPLETE_CYCLE
 const REPORT_CRAWL_RETRY_WAIT_MINUTES = processenv('REPORT_CRAWL_RETRY_WAIT_MINUTES') || 1
 const REPORT_COMPLETE_CYCLE_WAIT_MINUTES = processenv('REPORT_COMPLETE_CYCLE_WAIT_MINUTES') || 30
 
-
 // check if necessery DOWNLOAD_DIRECTORY_BASE_PATH env var is given
 if (_.isNil(DOWNLOAD_DIRECTORY_BASE_PATH)) {
   log.fatal('no download directory base path (env variable DOWNLOAD_DIRECTORY_BASE_PATH) given')
   process.exit(EXIT_CODES.DOWNLOAD_DIRECTORY_BASE_PATH_NIL_ERROR)
 }
 
-log.info('download directory base path is ' +  DOWNLOAD_DIRECTORY_BASE_PATH)
-
+log.info('download directory base path is ' + DOWNLOAD_DIRECTORY_BASE_PATH)
 
 /* We need this for later use
  function getDataForLocationInGrib(grib, lo, la) {
@@ -74,8 +72,7 @@ log.info('download directory base path is ' +  DOWNLOAD_DIRECTORY_BASE_PATH)
   const row = Math.round((la - header.la1) / header.dy)
 
   return data[(numberOfColumns * row) + column]
-}*/
-
+} */
 
 /**
  * convertDomainUrlToIPUrl asynchronously queries the IPv4 address for a given
@@ -83,7 +80,7 @@ log.info('download directory base path is ' +  DOWNLOAD_DIRECTORY_BASE_PATH)
  * @param  {String} domainUrlString the url to query the IP address for
  * @return {String}                 the ip address for the url
  */
-async function convertDomainUrlToIPUrl(domainUrlString) {
+async function convertDomainUrlToIPUrl (domainUrlString) {
   const domainUrl = new URL(domainUrlString)
 
   var ip = await lookup(domainUrl.hostname)
@@ -100,9 +97,9 @@ async function convertDomainUrlToIPUrl(domainUrlString) {
  * @param  {String} url the url to download the data from
  * @return
  */
-async function downloadFile(url) {
+async function downloadFile (url) {
   var attempts = 0
-  for(;;) {
+  for (;;) {
     try {
       const result = await request({
         method: 'get',
@@ -127,8 +124,8 @@ async function downloadFile(url) {
 /**
  * reportMain asynchronously downloads the report data in an endless lookup
  */
-async function reportMain() {
-  for(;;) {
+async function reportMain () {
+  for (;;) {
     // Using the IP address instead of domain is necessary as with each https
     // request for data based on the url a DNS resolve is performed. After
     // several thousand requests within a short time the DNS server rejects
@@ -164,7 +161,6 @@ async function reportMain() {
 
     // step 2: download
     for (var i = 0; i < listOfFiles.length; i++) {
-
       // wait before processing next file
       await delay(1)
 
@@ -174,7 +170,7 @@ async function reportMain() {
         var textContent = binaryContent.toString('utf8')
         var table = dwd_csv.parseCSV(textContent)
       } catch (error) {
-        log.error({error: error, url: url}, 'an error occured while downloading and parse the csv file')
+        log.error({ error: error, url: url }, 'an error occured while downloading and parse the csv file')
         continue
       }
 
@@ -184,7 +180,7 @@ async function reportMain() {
         try {
           var m = moment.tz(row[0], 'DD.MM.YYYY', 'UTC')
         } catch (error) {
-          log.error({error: error, url: url}, 'an error occured while handling the csv file')
+          log.error({ error: error, url: url }, 'an error occured while handling the csv file')
           return
         }
 
@@ -198,7 +194,7 @@ async function reportMain() {
 
       dates = _.keys(dates)
 
-      for(var j = 0; j < dates.length; j++) {
+      for (var j = 0; j < dates.length; j++) {
         const dateString = dates[j]
         const urlTokens = url.split('/')
         const fileName = urlTokens[urlTokens.length - 1]
@@ -210,26 +206,25 @@ async function reportMain() {
         const exists = await fs.pathExists(targetFilePath)
         if (exists) {
           try {
-            const currentContent = await fs.readFile(targetFilePath, {encoding: 'utf8'})
+            const currentContent = await fs.readFile(targetFilePath, { encoding: 'utf8' })
             const newContent = dwd_csv.mergeCSVContents(currentContent, textContent, moment.tz(dateString, 'YYYYMMDD', 'UTC').format('DD.MM.YY'))
-            await fs.writeFile(targetFilePath, newContent, {encoding: 'utf8'})
+            await fs.writeFile(targetFilePath, newContent, { encoding: 'utf8' })
           } catch (error) {
-            log.error({error: error.toString(), url: url}, 'an error occured while reading, merging, and writing the existing file')
+            log.error({ error: error.toString(), url: url }, 'an error occured while reading, merging, and writing the existing file')
           }
         } else {
           try {
-            const newTable = table.slice(0,3)
+            const newTable = table.slice(0, 3)
             _.forEach(table.slice(3), (row) => {
-
               if (row[0] !== moment.tz(dateString, 'YYYYMMDD', 'UTC').format('DD.MM.YY')) {
                 return
               }
 
               newTable.push(row)
             })
-            await fs.writeFile(targetFilePath, dwd_csv.generateCSV(newTable), {encoding: 'utf8'})
+            await fs.writeFile(targetFilePath, dwd_csv.generateCSV(newTable), { encoding: 'utf8' })
           } catch (error) {
-            log.error({error: error, url: url}, 'an error occured while writing the new file')
+            log.error({ error: error, url: url }, 'an error occured while writing the new file')
           }
         }
       }
@@ -244,8 +239,8 @@ async function reportMain() {
 /**
  * reportMain asynchronously downloads the forecast data in an endless lookup
  */
-async function forecastMain() {
-  for(;;) {
+async function forecastMain () {
+  for (;;) {
     // Using the IP address instead of domain is necessary as with each https
     // request for data based on the url a DNS resolve is performed. After
     // several thousand requests within a short time the DNS server rejects
@@ -304,7 +299,7 @@ async function forecastMain() {
 
         var hourString = lines[3].split(';')[1].split(':')[0]
       } catch (error) {
-        log.error({error: error, url: url}, 'an error occured while downloading and parse the csv file')
+        log.error({ error: error, url: url }, 'an error occured while downloading and parse the csv file')
         continue
       }
 
@@ -321,9 +316,9 @@ async function forecastMain() {
 
       try {
         await fs.ensureDir(directoryPath)
-        await fs.writeFile(targetFilePath, binaryContent, {encoding: null})
+        await fs.writeFile(targetFilePath, binaryContent, { encoding: null })
       } catch (error) {
-        log.fatal({error: error, filePath: targetFilePath}, 'storing file at ' + targetFilePath + ' failed')
+        log.fatal({ error: error, filePath: targetFilePath }, 'storing file at ' + targetFilePath + ' failed')
         process.exit(1)
       }
     }
@@ -337,8 +332,8 @@ async function forecastMain() {
 /**
  * crawlMOSMIXasKMZ asynchronously downloads the MOSMIX_L-forecast data in an endless lookup
  */
-async function crawlMOSMIXasKMZ() {
-  for(;;) {
+async function crawlMOSMIXasKMZ () {
+  for (;;) {
     // Using the IP address instead of domain is necessary as with each https
     // request for data based on the url a DNS resolve is performed. After
     // several thousand requests within a short time the DNS server rejects
@@ -415,15 +410,15 @@ async function crawlMOSMIXasKMZ() {
         var binaryContent = await downloadFile(url)
         log.info('downloading new forecast ' + fileName)
       } catch (error) {
-        log.error({error: error, url: url}, 'an error occured while downloading the .kmz-file')
+        log.error({ error: error, url: url }, 'an error occured while downloading the .kmz-file')
         continue
       }
 
       try {
         await fs.ensureDir(directoryPath)
-        await fs.writeFile(targetFilePath, binaryContent, {encoding: null})
+        await fs.writeFile(targetFilePath, binaryContent, { encoding: null })
       } catch (error) {
-        log.fatal({error: error, filePath: targetFilePath}, 'storing file at ' + targetFilePath + ' failed')
+        log.fatal({ error: error, filePath: targetFilePath }, 'storing file at ' + targetFilePath + ' failed')
         process.exit(1)
       }
     }
@@ -434,12 +429,11 @@ async function crawlMOSMIXasKMZ() {
   }
 }
 
-
 /**
  * COSMO_D2Main asynchronously downloads the COSMO D2 data in an endless lookup
  */
-async function COSMO_D2Main() {
-  for(;;) {
+async function COSMO_D2Main () {
+  for (;;) {
     // Using the IP address instead of domain is necessary as with each https
     // request for data based on the url a DNS resolve is performed. After
     // several thousand requests within a short time the DNS server rejects
@@ -454,7 +448,6 @@ async function COSMO_D2Main() {
       await delay(COSMO_D2_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
       continue
     }
-
 
     var listOfFiles = null
 
@@ -497,9 +490,8 @@ async function COSMO_D2Main() {
         continue
       }
 
-
       const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather', 'cosmo-d2', 'grib', dateTimeString, sourceQuantity)
-      const filePath =  path.join(
+      const filePath = path.join(
         directoryPath,
         urlTokens[urlTokens.length - 1].replace('bz2', 'lz4')
       )
@@ -514,7 +506,7 @@ async function COSMO_D2Main() {
         log.info('handling file ' + url)
         const content = await downloadFile(url)
         await fs.ensureDir(directoryPath)
-        await fs.writeFile(filePath.replace('lz4', 'bz2'), content, {encoding: null})
+        await fs.writeFile(filePath.replace('lz4', 'bz2'), content, { encoding: null })
         await execFile('bzip2', ['-d', filePath.replace('lz4', 'bz2')])
         await execFile('lz4', ['-z9', filePath.replace('.lz4', ''), filePath])
         await fs.unlink(filePath.replace('.lz4', ''))
@@ -529,7 +521,6 @@ async function COSMO_D2Main() {
     await delay(COSMO_D2_COMPLETE_CYCLE_WAIT_MINUTES * 60 * 1000)
   }
 }
-
 
 // start the three concurrent loops to query forecast, report and COSMO DE data
 forecastMain()
