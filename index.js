@@ -37,7 +37,6 @@ const moment = require('moment-timezone')
 var bunyan = require('bunyan')
 
 const DWD_COSMO_D2_BASE_URL = 'https://opendata.dwd.de/weather/nwp/cosmo-d2/grib/'
-const DWD_FORECAST_BASE_URL = 'https://opendata.dwd.de/weather/local_forecasts/poi/'
 const DWD_MOSMIX_BASE_URL = 'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_L/single_stations/'
 const DWD_REPORT_BASE_URL = 'https://opendata.dwd.de/weather/weather_reports/poi/'
 
@@ -246,99 +245,6 @@ async function reportMain () {
 }
 
 /**
- * reportMain asynchronously downloads the forecast data in an endless lookup
- */
-async function forecastMain () {
-  for (;;) {
-    // Using the IP address instead of domain is necessary as with each https
-    // request for data based on the url a DNS resolve is performed. After
-    // several thousand requests within a short time the DNS server rejects
-    // resvolving domain names to IP addresses
-    // --> work around: query IP once per cyclce and perform http requests based
-    // on the IP instead of the domain name
-    try {
-      var ipBaseUrl = await convertDomainUrlToIPUrl(DWD_FORECAST_BASE_URL)
-    } catch (error) {
-      log.error(error, 'resolving ip base path failed')
-      await delay(FORECAST_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
-      continue
-    }
-
-    var listOfFiles = null
-
-    // step 1: crawl list of available grib files
-    for (;;) {
-      log.info('crawling list of available files at ' + ipBaseUrl + ' ...')
-
-      try {
-        listOfFiles = await dwd_grib.crawlListOfFilePaths(ipBaseUrl)
-        break
-      } catch (error) {
-        log.error(error, 'crawling list of files failed')
-      }
-
-      log.info('waiting ' + FORECAST_CRAWL_RETRY_WAIT_MINUTES + ' minutes before starting next retry for forecast')
-      await delay(FORECAST_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
-    }
-
-    log.info('crawl for forecast revealed ' + listOfFiles.length + ' files')
-    // step 2: download
-    for (var i = 0; i < listOfFiles.length; i++) {
-      // wait before processing next file
-      await delay(1)
-
-      const url = listOfFiles[i]
-
-      if (i % 100 === 0) {
-        log.info('forecast is handling file ' + url)
-      }
-
-      try {
-        var binaryContent = await downloadFile(url)
-        var textContent = binaryContent.toString('utf8')
-        textContent = textContent.replace(/\r\n/g, '\n')
-        const lines = textContent.split('\n')
-        var dateString = lines[3].split(';')[0]
-
-        const dateStringTokens = dateString.split('.')
-        if (dateStringTokens[2].length === 2) {
-          dateStringTokens[2] = '20' + dateStringTokens[2]
-        }
-        dateString = dateStringTokens[2] + dateStringTokens[1] + dateStringTokens[0]
-
-        var hourString = lines[3].split(';')[1].split(':')[0]
-      } catch (error) {
-        log.error({ error: error, url: url }, 'an error occured while downloading and parse the csv file')
-        continue
-      }
-
-      const urlTokens = url.split('/')
-      const fileName = urlTokens[urlTokens.length - 1]
-      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather', 'local_forecasts', 'poi', dateString + hourString)
-      const targetFilePath = path.join(directoryPath, fileName)
-
-      const exists = await fs.pathExists(targetFilePath)
-
-      if (exists) {
-        continue
-      }
-
-      try {
-        await fs.ensureDir(directoryPath)
-        await fs.writeFile(targetFilePath, binaryContent, { encoding: null })
-      } catch (error) {
-        log.fatal({ error: error, filePath: targetFilePath }, 'storing file at ' + targetFilePath + ' failed')
-        process.exit(1)
-      }
-    }
-
-    // wait COMPLETE_CYCLE_WAIT_MINUTES minutes before polling for new files
-    log.info('waiting ' + FORECAST_COMPLETE_CYCLE_WAIT_MINUTES + ' minutes before starting next forecast cycle')
-    await delay(FORECAST_COMPLETE_CYCLE_WAIT_MINUTES * 60 * 1000)
-  }
-}
-
-/**
  * crawlMOSMIXasKMZ asynchronously downloads the MOSMIX_L-forecast data in an endless lookup
  */
 async function crawlMOSMIXasKMZ () {
@@ -539,8 +445,7 @@ async function COSMO_D2Main () {
   }
 }
 
-// start the three concurrent loops to query forecast, report and COSMO DE data
-forecastMain()
-reportMain()
-COSMO_D2Main()
+// Start three concurrent loops to query MOSMIX, COSMO-D2 and measurement data
 crawlMOSMIXasKMZ()
+COSMO_D2Main()
+reportMain()
