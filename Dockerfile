@@ -16,7 +16,7 @@ WORKDIR /home/node/app
 
 COPY ./package.json /home/node/app
 
-RUN npm install
+RUN npm install --production
 
 COPY ./ /home/node/app/
 
