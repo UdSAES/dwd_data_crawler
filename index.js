@@ -296,7 +296,7 @@ async function crawlMOSMIXasKMZ () {
         let files = await dwd_grib.crawlListOfFilePaths(url)
         listOfFiles = _.concat(listOfFiles, files)
       } catch (error) {
-        log.error(error, 'crawling list of files for station' + stationID + 'failed')
+        log.error(error, 'crawling list of files for station ' + stationID + ' failed')
       }
     }
 
