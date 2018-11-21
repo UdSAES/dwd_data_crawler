@@ -1,15 +1,9 @@
 // One-off admin process to delete grib2-files in rotated coordinates
 // SPDX-License-Identifier: MIT
 
-'use strict'
+// TODO replace plain console.log-entries by structured ones
 
-// Algorithm
-// Move all rotated files to a separate directory (this script)
-// Delete all rotated files within that directory
-// Tag the important snapshots on Zoidberg
-// Delete all but the tagged snapshots on Zoidberg
-// Add pruning of old snapshots to backup script, deploy to Nibbler
-// Copy the crawled files from autsys138 to Nibbler
+'use strict'
 
 const _ = require('lodash')
 const fs = require('fs-extra')
