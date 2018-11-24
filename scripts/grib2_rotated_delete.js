@@ -41,12 +41,15 @@ async function checkIfConfigIsValid () {
 }
 
 // Define functions
-async function findAllRotatedGrib2Files (basePath) {
-  const list = []
+async function moveAllRotatedGrib2Files (basePathOld, basePathNew) {
+  // Find all grib2-files that have 'rotated' as part of their filename
+  // and have a 'regular' sibling, then replace its basePath/move it
+  let numberOfFilesMoved = 0
+
   try {
-    const subDirs = await fs.readdir(basePath)
+    const subDirs = await fs.readdir(basePathOld)
     for (const subDir of subDirs) {
-      const subDirPath = path.join(basePath, subDir)
+      const subDirPath = path.join(basePathOld, subDir)
 
       const subSubDirs = await fs.readdir(subDirPath)
       for (const subSubDir of subSubDirs) {
@@ -65,8 +68,19 @@ async function findAllRotatedGrib2Files (basePath) {
               path.join(subSubDirPath, sibling)
             )
             if (fileHasSibling === true) {
-              log.debug(`file ${file} has sibling ${sibling}, added for removal`)
-              list.push(filePath)
+              log.debug(`file ${file} has sibling ${sibling}`)
+
+              // Move the rotated file to a separate directory
+              const filePathOld = filePath
+              const filePathNew = await _.replace(
+                filePathOld,
+                basePathOld,
+                basePathNew
+              )
+              await fs.move(filePathOld, filePathNew)
+              numberOfFilesMoved += 1
+
+              log.debug(`moved ${filePathOld} to ${filePathNew}`)
             }
           }
         }
@@ -78,14 +92,13 @@ async function findAllRotatedGrib2Files (basePath) {
     log.fatal(error)
     process.exit(1)
   }
-  return list
+  return numberOfFilesMoved
 }
 
 // Define main function
 const main = async function () {
   await checkIfConfigIsValid()
 
-  // Find all grib2-files that have 'rotated' as part of their filename and have a 'regular' sibling
   const gribFilesBasePath = path.join(
     DOWNLOAD_DIRECTORY_BASE_PATH,
     'weather',
@@ -99,28 +112,18 @@ const main = async function () {
     'cosmo-d2',
     'grib'
   )
-  await fs.ensureDir(rotatedFilesBasePath)
+
+  let totalFilesMoved = 0
 
   if (gribFilesBasePathExists) {
     try {
-      const listOfRotatedGrib2Files = await findAllRotatedGrib2Files(gribFilesBasePath)
-      log.info(`total of ${listOfRotatedGrib2Files.length} rotated .grib2.lz4-files marked for removal`)
-
-      // Move the rotated files to a separate directory
-      for (const filePathOld of listOfRotatedGrib2Files) {
-        const filePathNew = await _.replace(
-          filePathOld,
-          gribFilesBasePath,
-          rotatedFilesBasePath
-        )
-        await fs.move(filePathOld, filePathNew)
-        log.debug(`move ${filePathOld} to ${filePathNew}`)
-      }
+      await fs.ensureDir(rotatedFilesBasePath)
+      totalFilesMoved = await moveAllRotatedGrib2Files(gribFilesBasePath, rotatedFilesBasePath)
     } catch (error) {
       log.fatal(error)
       process.exit(1)
     }
-    log.info(`successfully moved all files!`)
+    log.info(`successfully moved ${totalFilesMoved} files!`)
   }
 }
 
