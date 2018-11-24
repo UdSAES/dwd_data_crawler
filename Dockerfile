@@ -17,6 +17,9 @@ COPY --chown=node:node ./package.json  ./package-lock.json /home/node/app/
 
 RUN npm install --production
 
-COPY --chown=node:node ./* /home/node/app/
+COPY --chown=node:node ./configuration/ /home/node/app/
+COPY --chown=node:node ./scripts/ /home/node/app/
+COPY --chown=node:node ./lib /home/node/app/
+COPY --chown=node:node ./index.js /home/node/app/
 
 ENTRYPOINT node index.js
