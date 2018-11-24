@@ -38,16 +38,17 @@ async function checkIfConfigIsValid () {
 async function findAllRotatedGrib2Files (basePath) {
   const list = []
   try {
-    const subdirs = await fs.readdir(basePath)
-    for (let i = 0; i < subdirs.length; i++) {
-      const subDirPath = path.join(basePath, subdirs[i])
-      const subsubdirs = await fs.readdir(subDirPath)
-      for (let i = 0; i < subsubdirs.length; i++) {
-        const subSubDirPath = path.join(subDirPath, subsubdirs[i])
+    const subDirs = await fs.readdir(basePath)
+    for (const subDir of subDirs) {
+      const subDirPath = path.join(basePath, subDir)
+
+      const subSubDirs = await fs.readdir(subDirPath)
+      for (const subSubDir of subSubDirs) {
+        const subSubDirPath = path.join(subDirPath, subSubDir)
+
         const files = await fs.readdir(subSubDirPath)
-        for (let i = 0; i < files.length; i++) {
+        for (const file of files) {
           // Iff there is a 'regular' version,  mark the 'rotated' one for removal
-          const file = files[i]
           const filePath = path.join(subSubDirPath, file)
           if (
             (_.includes(file, 'rotated') === true) &&
