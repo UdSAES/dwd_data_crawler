@@ -1,36 +1,42 @@
 // One-off admin process to delete grib2-files in rotated coordinates
 // SPDX-License-Identifier: MIT
 
-// TODO replace plain console.log-entries by structured ones
-
 'use strict'
 
 const _ = require('lodash')
 const fs = require('fs-extra')
 const path = require('path')
 const processenv = require('processenv')
+const bunyan = require('bunyan')
 
 // Load configuration
 const DOWNLOAD_DIRECTORY_BASE_PATH = processenv('DOWNLOAD_DIRECTORY_BASE_PATH')
 const ROTATED_NEW_DIRECTORY_BASE_PATH = processenv('ROTATED_NEW_DIRECTORY_BASE_PATH')
 
+// Instantiate logger
+let log = bunyan.createLogger({
+  name: 'grib2_rotated_delete.js',
+  level: 'debug'
+})
+log.info('entering admin script `grib2_rotated_delete.js`')
+
 // Check validity of inputs
 async function checkIfConfigIsValid () {
   if (_.isNil(DOWNLOAD_DIRECTORY_BASE_PATH)) {
-    console.log('FATAL: environment variable DOWNLOAD_DIRECTORY_BASE_PATH missing')
+    log.fatal('FATAL: environment variable DOWNLOAD_DIRECTORY_BASE_PATH missing')
     process.exit(1)
   } else if (!(await fs.pathExists(DOWNLOAD_DIRECTORY_BASE_PATH))) {
-    console.log('FATAL: DOWNLOAD_DIRECTORY_BASE_PATH is given but does not exist')
+    log.fatal('FATAL: DOWNLOAD_DIRECTORY_BASE_PATH is given but does not exist')
     process.exit(1)
   } else if (_.isNil(ROTATED_NEW_DIRECTORY_BASE_PATH)) {
-    console.log('FATAL: environment variable ROTATED_NEW_DIRECTORY_BASE_PATH missing')
+    log.fatal('FATAL: environment variable ROTATED_NEW_DIRECTORY_BASE_PATH missing')
     process.exit(1)
   } else if (!(await fs.pathExists(ROTATED_NEW_DIRECTORY_BASE_PATH))) {
-    console.log('FATAL: ROTATED_NEW_DIRECTORY_BASE_PATH is given but does not exist')
+    log.fatal('FATAL: ROTATED_NEW_DIRECTORY_BASE_PATH is given but does not exist')
     process.exit(1)
   } else {
-    console.log('DOWNLOAD_DIRECTORY_BASE_PATH is set to', DOWNLOAD_DIRECTORY_BASE_PATH)
-    console.log('ROTATED_NEW_DIRECTORY_BASE_PATH is set to', ROTATED_NEW_DIRECTORY_BASE_PATH)
+    log.info('DOWNLOAD_DIRECTORY_BASE_PATH is set to', DOWNLOAD_DIRECTORY_BASE_PATH)
+    log.info('ROTATED_NEW_DIRECTORY_BASE_PATH is set to', ROTATED_NEW_DIRECTORY_BASE_PATH)
   }
 }
 
@@ -58,16 +64,18 @@ async function findAllRotatedGrib2Files (basePath) {
             const fileHasSibling = await fs.pathExists(
               path.join(subSubDirPath, sibling)
             )
-            // console.log(file, fileHasSibling, sibling)
             if (fileHasSibling === true) {
+              log.debug(`file ${file} has sibling ${sibling}, added for removal`)
               list.push(filePath)
             }
           }
         }
+        log.debug(`analyzed ${files.length} files in ./${subDir}/${subSubDir}`)
       }
+      log.info(`analyzed files in ./${subDir}`)
     }
   } catch (error) {
-    console.log(error)
+    log.fatal(error)
     process.exit(1)
   }
   return list
@@ -96,9 +104,7 @@ const main = async function () {
   if (gribFilesBasePathExists) {
     try {
       const listOfRotatedGrib2Files = await findAllRotatedGrib2Files(gribFilesBasePath)
-      console.log(
-        'listOfRotatedGrib2Files:', listOfRotatedGrib2Files
-      )
+      log.info(`total of ${listOfRotatedGrib2Files.length} rotated .grib2.lz4-files marked for removal`)
 
       // Move the rotated files to a separate directory
       for (const filePathOld of listOfRotatedGrib2Files) {
@@ -108,14 +114,13 @@ const main = async function () {
           rotatedFilesBasePath
         )
         await fs.move(filePathOld, filePathNew)
-        console.log('\n')
-        console.log(filePathOld)
-        console.log(filePathNew)
+        log.debug(`move ${filePathOld} to ${filePathNew}`)
       }
     } catch (error) {
-      console.log(error)
+      log.fatal(error)
       process.exit(1)
     }
+    log.info(`successfully moved all files!`)
   }
 }
 
