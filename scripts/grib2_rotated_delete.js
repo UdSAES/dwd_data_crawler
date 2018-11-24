@@ -77,10 +77,15 @@ async function moveAllRotatedGrib2Files (basePathOld, basePathNew) {
                 basePathOld,
                 basePathNew
               )
-              await fs.move(filePathOld, filePathNew)
-              numberOfFilesMoved += 1
 
-              log.debug(`moved ${filePathOld} to ${filePathNew}`)
+              try {
+                await fs.move(filePathOld, filePathNew)
+                numberOfFilesMoved += 1
+
+                log.debug(`moved ${filePathOld} to ${filePathNew}`)
+              } catch (error) {
+                log.warn(error)
+              }
             }
           }
         }
