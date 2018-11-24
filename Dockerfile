@@ -11,13 +11,12 @@ ENV DOWNLOAD_DIRECTORY_BASE_PATH=/mnt/downloads
 USER node
 
 RUN mkdir /home/node/app
-
 WORKDIR /home/node/app
 
-COPY ./package.json /home/node/app
+COPY --chown=node:node ./package.json  ./package-lock.json /home/node/app/
 
 RUN npm install --production
 
-COPY ./ /home/node/app/
+COPY --chown=node:node ./* /home/node/app/
 
 ENTRYPOINT node index.js
