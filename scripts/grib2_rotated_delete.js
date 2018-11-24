@@ -12,6 +12,7 @@ const processenv = require('processenv')
 
 // Load configuration
 const DOWNLOAD_DIRECTORY_BASE_PATH = processenv('DOWNLOAD_DIRECTORY_BASE_PATH')
+const ROTATED_NEW_DIRECTORY_BASE_PATH = processenv('ROTATED_NEW_DIRECTORY_BASE_PATH')
 
 // Check validity of inputs
 async function checkIfConfigIsValid () {
@@ -21,8 +22,15 @@ async function checkIfConfigIsValid () {
   } else if (!(await fs.pathExists(DOWNLOAD_DIRECTORY_BASE_PATH))) {
     console.log('FATAL: DOWNLOAD_DIRECTORY_BASE_PATH is given but does not exist')
     process.exit(1)
+  } else if (_.isNil(ROTATED_NEW_DIRECTORY_BASE_PATH)) {
+    console.log('FATAL: environment variable ROTATED_NEW_DIRECTORY_BASE_PATH missing')
+    process.exit(1)
+  } else if (!(await fs.pathExists(ROTATED_NEW_DIRECTORY_BASE_PATH))) {
+    console.log('FATAL: ROTATED_NEW_DIRECTORY_BASE_PATH is given but does not exist')
+    process.exit(1)
   } else {
     console.log('DOWNLOAD_DIRECTORY_BASE_PATH is set to', DOWNLOAD_DIRECTORY_BASE_PATH)
+    console.log('ROTATED_NEW_DIRECTORY_BASE_PATH is set to', ROTATED_NEW_DIRECTORY_BASE_PATH)
   }
 }
 
@@ -78,8 +86,7 @@ const main = async function () {
   const gribFilesBasePathExists = await fs.pathExists(gribFilesBasePath)
 
   const rotatedFilesBasePath = path.join(
-    DOWNLOAD_DIRECTORY_BASE_PATH,
-    'rotated',
+    ROTATED_NEW_DIRECTORY_BASE_PATH,
     'cosmo-d2',
     'grib'
   )
