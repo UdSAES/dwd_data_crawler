@@ -20,10 +20,10 @@ const THRESHOLD = processenv('THRESHOLD')
 
 // Instantiate logger
 let log = bunyan.createLogger({
-  name: 'grib2_rotated_delete.js',
+  name: 'act_on_specific_files.js',
   level: 'debug'
 })
-log.info('entering admin script `grib2_rotated_delete.js`')
+log.info('entering admin script `act_on_specific_files.js`')
 
 // Define validity of inputs
 async function checkIfConfigIsValid () {
@@ -221,7 +221,7 @@ const main = async function () {
           NEW_DIRECTORY_BASE_PATH
         )
       }
-      
+
       totalFilesMoved = await applyActionToAllFilesMatchingCriteria(
         path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather'),
         olderThanEnvvarThreshold,
