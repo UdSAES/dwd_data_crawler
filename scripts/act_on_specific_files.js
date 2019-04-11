@@ -95,10 +95,27 @@ async function applyActionToAllFilesMatchingCriteria(basePath, criterion, action
 // Definition of functions to evaluate criteria
 async function createdBeforeDate (filePath, dateStringIso8601) {
   const stats = await fs.stat(filePath)
-  const fileBirthTime = moment(stats.birthtimeMs)
-  const threshold = moment(dateStringIso8601)
+  const fileBirthTime = moment(stats.birthtimeMs).utc()
+  const threshold = moment(dateStringIso8601).utc()
 
   return moment(fileBirthTime).isBefore(threshold)
+}
+
+async function filePathHasDateBefore (filePath, dateStringIso8601) {
+  const regex = /^201[8-9]{1}[0-1]{1}[0-9]{3,5}$/
+  const threshold = moment(dateStringIso8601).utc()
+  const filePathParts = _.split(filePath, path.sep)
+  const forecastRun = String(_.find(filePathParts, function (part) {
+    return part.match(regex)
+  }))
+  let forecastRunAsObject = null
+  if (forecastRun.length === 8) {
+    forecastRunAsObject = moment(forecastRun).utc()
+  } else if (forecastRun.length === 10) {
+    forecastRunAsObject = moment(forecastRun, 'YYYYMMDDHH').utc()
+  }
+
+  return moment(forecastRunAsObject).isBefore(threshold)
 }
 
 // Definition of actions
@@ -214,7 +231,7 @@ const main = async function () {
       const olderThanEnvvarThreshold = async (filePath) => {
         let result
         try {
-          result = await createdBeforeDate(filePath, THRESHOLD)
+          result = await filePathHasDateBefore(filePath, THRESHOLD)
         } catch (error) {
           throw error
         }
