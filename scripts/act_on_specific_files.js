@@ -113,7 +113,7 @@ async function moveToNewBasedirKeepSubdirs (filePathOld, basePathOld, basePathNe
     await fs.move(filePathOld, filePathNew)
     log.debug(`moved ${filePathOld} to ${filePathNew}`)
   } catch (error) {
-    throw error
+    log.error(error)
   }
 }
 
@@ -211,19 +211,32 @@ const main = async function () {
       }
       break
     case 'oldest':
-      const olderThanEnvvarThreshold = (filePath) => {
-        return createdBeforeDate(filePath, THRESHOLD)
+      const olderThanEnvvarThreshold = async (filePath) => {
+        let result
+        try {
+          result = await createdBeforeDate(filePath, THRESHOLD)
+        } catch (error) {
+          throw error
+        }
+        return result
       }
-      const moveFilesAway = (filePath) => {
-        return moveToNewBasedirKeepSubdirs(
-          filePath,
-          DOWNLOAD_DIRECTORY_BASE_PATH,
-          NEW_DIRECTORY_BASE_PATH
-        )
+
+      const moveFilesAway = async (filePath) => {
+        let result
+        try {
+          result = await moveToNewBasedirKeepSubdirs(
+            filePath,
+            DOWNLOAD_DIRECTORY_BASE_PATH,
+            NEW_DIRECTORY_BASE_PATH
+          )
+        } catch (error) {
+          throw error
+        }
+        return result
       }
 
       totalFilesMoved = await applyActionToAllFilesMatchingCriteria(
-        path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather'),
+        DOWNLOAD_DIRECTORY_BASE_PATH,
         olderThanEnvvarThreshold,
         moveFilesAway
       )
