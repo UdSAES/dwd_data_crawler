@@ -9,11 +9,11 @@
   "author": "Florian Wagner <florian.wagner@aut.uni-saarland.de>",
   "license": "MIT",
   "dependencies": {
-    "bunyan": "^1.8.12",
+    "bunyan": "^1.8.14",
     "cheerio": "^1.0.0-rc.2",
     "delay": "^2.0.0",
     "fs-extra": "^5.0.0",
-    "lodash": "^4.17.10",
+    "lodash": "^4.17.15",
     "moment": "^2.22.2",
     "moment-timezone": "^0.5.21",
     "processenv": "^0.1.1",
