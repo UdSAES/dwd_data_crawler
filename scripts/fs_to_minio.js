@@ -1,3 +1,10 @@
+// One-off admin process to apply actions to specific files, e.g.
+// -- delete grib2-files in rotated coordinates
+// -- move oldest files to separate harddisk in order to gain space
+// SPDX-License-Identifier: MIT
+
+'use strict'
+
 const fs = require('fs')
 const process = require('process')
 const path = require('path')
@@ -23,69 +30,60 @@ const minioClient = new Minio.Client({
   secretKey: SECRET_KEY
 })
 
-async function runUploading () {
-  // Just some metadata, can be different.
-  const metaData = {
-    'Content-Type': 'application/octet-stream',
-    'X-Amz-Meta-Testing': 1234,
-    example: 5678,
-    'Model-Type': 'COSMO-D2',
-    'Model-Run': '2020-08-19'
-  }
+// Just some metadata, can be different.
+const metaData = {
+  'Content-Type': 'application/octet-stream',
+  'X-Amz-Meta-Testing': 1234,
+  example: 5678,
+  'Model-Type': 'COSMO-D2',
+  'Model-Run': '2020-08-19'
+}
 
-  console.log('Initialized client')
+// Get files
+const files = []
 
-  // Initialize bucket. Once it is initialized execution of this code will not break anything
-  // But it wil complain that bucket already exists. That is ok
-  const bucketName = 'mybucket'
-  const region = 'us-east-1'
+fs.readdirSync(PATH_TO_STORAGE).forEach(file => {
+  files.push(path.join(PATH_TO_STORAGE, file))
+})
 
+function makeBucket (bucketName, region = 'eu-east-1') {
   // Create bucket
-  minioClient.makeBucket(bucketName, region, function (err) {
-    if (err) return console.log('Error creating bucket.', err)
-    console.log(`Bucket ${bucketName} created successfully in ${region}.`)
-  })
-
-  // Get full paths of the files
-  const files = []
-
-  fs.readdirSync(PATH_TO_STORAGE).forEach(file => {
-    files.push(path.join(PATH_TO_STORAGE, file))
-  })
-
-  // Function that uploads the files
-  // Currently unused
-  async function putFileToBucket (bucketName, filenameInBucket, file, metaData) {
-    await minioClient.fPutObject(bucketName, filenameInBucket, file, metaData, function (err, etag) {
-      if (err) return console.log(err)
-      console.log('File uploaded successfully.')
+  const result = new Promise((resolve, reject) => {
+    minioClient.makeBucket(bucketName, region, function (err) {
+      if (!err) {
+        return resolve(`Bucket ${bucketName} created successfully in ${region}.`)
+      } else {
+        return reject(err)
+      }
     })
-  }
+  })
+  console.log('')
+  return result
+}
 
-  // Upload files
-  // In metaData any key can be, also object_id. Minio will use etag key nevertheless as identification.
-
-  function uploadFilesToBucket (bucketName, files, metaData) {
+function uploadFilesToBucket (bucketName, files, metaData) {
+  const result = new Promise((resolve, reject) => {
+    // upload each file
     for (let i = 0; i < files.length; i += 1) {
       metaData.object_id = i
       minioClient.fPutObject(bucketName, `file${i}`, files[i], metaData, function (err, etag) {
-        if (err) return console.log(err)
-        console.log('File uploaded successfully.')
+        if (!err) {
+          return resolve(`File ${files[i]} was uploaded to bucket ${bucketName}`)
+        } else {
+          return reject(err, 'Did not upload file')
+        }
       })
     }
-  }
-
-  uploadFilesToBucket('mybucket', files, metaData)
+  })
+  return result
 }
 
-// BELOW LINE SHOULD BE FINISHED BEFORE run_indexing()
-runUploading().catch(console.log())
-// Might cause issues
-
-async function runIndexing () {
+async function runIndexing (bucketName) {
   // List each file in a bucket
 
-  var stream = minioClient.extensions.listObjectsV2WithMetadata('mybucket', '', true, '')
+  var stream = minioClient.extensions.listObjectsV2WithMetadata(bucketName, '', true, '')
+
+  // https://www.elastic.co/guide/en/elasticsearch/client/javascript-api/current/api-reference.html
   const client = new Client({ node: `${ELASTICSEARCH_ENDPOINT_URI}:${ELASTICSEARCH_PORT}` })
 
   // Listing items returns Readable stream, and each object in indexed
@@ -100,19 +98,22 @@ async function runIndexing () {
   })
   // Or if error: show error
   stream.on('error', function (err) { console.log(err) })
-
-  // For testing - check if anything indexed is found
-  const { body } = await client.search({
-    index: 'test1337',
-    body: {
-      query: {
-        match: {
-          name: 'file3'
-        }
-      }
-    }
-  })
-  console.log(body.hits.hits)
 }
 
-runIndexing().catch(console.log)
+(async () => {
+  const bucketName = 'udsaes'
+  makeBucket(bucketName).then((res) => {
+    // Only after creating a bucket
+    console.log(res)
+    // Upload files
+    uploadFilesToBucket(bucketName, files, metaData).then((res) => {
+      console.log(res)
+      // Only after uploading files to the bucket, index them
+      console.log('RUNNING INDEXING')
+      runIndexing(bucketName)
+    }).catch((err) => {
+      console.log(err)
+      console.log('Files were not uploaded')
+    })
+  }).catch((err) => { console.log(err) })
+})()
