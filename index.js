@@ -41,6 +41,9 @@ const DWD_MOSMIX_BASE_URL = 'https://opendata.dwd.de/weather/local_forecasts/mos
 const DWD_REPORT_BASE_URL = 'https://opendata.dwd.de/weather/weather_reports/poi/'
 
 const DOWNLOAD_DIRECTORY_BASE_PATH = processenv('DOWNLOAD_DIRECTORY_BASE_PATH')
+const DOWNLOAD_COSMO_D2 = Boolean(processenv('DOWNLOAD_COSMO_D2')) || false
+const DOWNLOAD_MOSMIX = Boolean(processenv('DOWNLOAD_MOSMIX')) || false
+const DOWNLOAD_BEOB = Boolean(processenv('DOWNLOAD_BEOB')) || false
 const COSMO_D2_CRAWL_RETRY_WAIT_MINUTES = processenv('COSMO_D2_CRAWL_RETRY_WAIT_MINUTES') || 1
 const COSMO_D2_COMPLETE_CYCLE_WAIT_MINUTES = processenv('COSMO_D2_COMPLETE_CYCLE_WAIT_MINUTES') || 10
 const FORECAST_CRAWL_RETRY_WAIT_MINUTES = processenv('FORECAST_CRAWL_RETRY_WAIT_MINUTES') || 1
@@ -446,6 +449,19 @@ async function COSMO_D2Main () {
 }
 
 // Start three concurrent loops to query MOSMIX, COSMO-D2 and measurement data
-crawlMOSMIXasKMZ()
-COSMO_D2Main()
-reportMain()
+
+log.debug('DOWNLOAD_COSMO_D2 is ', DOWNLOAD_COSMO_D2)
+log.debug('DOWNLOAD_MOSMIX is ', DOWNLOAD_MOSMIX)
+log.debug('DOWNLOAD_BEOB is ', DOWNLOAD_BEOB)
+
+if (DOWNLOAD_COSMO_D2 === true) {
+  COSMO_D2Main()
+}
+
+if (DOWNLOAD_MOSMIX === true) {
+  crawlMOSMIXasKMZ()
+}
+
+if (DOWNLOAD_BEOB === true) {
+  reportMain()
+}
