@@ -1,4 +1,6 @@
 # dwd_data_crawler
+[![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
+
 dwd_data_crawler is a micro service to crawl data from DWD (Deutscher Wetter
   Dienst) and store it for later use in a file system.
 
