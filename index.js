@@ -36,7 +36,7 @@ const execFile = promisify(require('child_process').execFile)
 const moment = require('moment-timezone')
 var bunyan = require('bunyan')
 
-const DWD_ICON_D2_BASE_URL = 'https://opendata.dwd.de/weather/nwp/cosmo-d2/grib/'
+const DWD_ICON_D2_BASE_URL = 'https://opendata.dwd.de/weather/nwp/icon-d2/grib/'
 const DWD_MOSMIX_BASE_URL = 'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_L/single_stations/'
 const DWD_REPORT_BASE_URL = 'https://opendata.dwd.de/weather/weather_reports/poi/'
 
@@ -398,26 +398,30 @@ async function ICON_D2Main () {
       await delay(1)
 
       const url = listOfFiles[i]
-      const urlTokens = url.split('/')
-      const sourceQuantity = urlTokens[urlTokens.length - 2]
-      const fileNameTokens = urlTokens[urlTokens.length - 1].split('_')
+      const urlTokens = _.split(url, '/')
+      const sourceQuantity = _.nth(urlTokens, -2)
+      const fileNameDotSeparated = _.split(_.nth(urlTokens, -1), '.')
+      const fileName = _.join(_.dropRight(fileNameDotSeparated, 2), '.')
+      const fileExtension = _.join(_.drop(fileNameDotSeparated, fileNameDotSeparated.length - 2), '.')
+      const fileNameTokens = _.split(fileName, '_')
 
-      let dateTimeString = ''
-      if (fileNameTokens.length === 8) {
-        dateTimeString = fileNameTokens[fileNameTokens.length - 4]
-      } else if (fileNameTokens.length === 7) {
-        dateTimeString = fileNameTokens[fileNameTokens.length - 3]
-      } else if (fileNameTokens.length === 6) {
-        dateTimeString = fileNameTokens[fileNameTokens.length - 2]
-      } else {
-        log.error(new Error('file name is invalid: ' + urlTokens[urlTokens.length - 1]))
-        continue
+      const model = _.nth(fileNameTokens, 0) // icon-d2
+      const scope = _.nth(fileNameTokens, 1) // germany
+      const gridType = _.nth(fileNameTokens, 2) // regular-lat-lon
+      const levelType = _.nth(fileNameTokens, 3) // single-level
+      const run = _.nth(fileNameTokens, 4) // 2021022100
+      const step = _.nth(fileNameTokens, 5) // 008
+      const level = _.nth(fileNameTokens, 6) // 2d
+      const field = _.join(_.drop(fileNameTokens, 7), '_') // aswdifd_s
+
+      if (field !== sourceQuantity) {
+        log.error(`the identified sourceQuantity ${sourceQuantity} does not match the field ${field} parsed from the filename!`)
       }
 
-      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather', 'cosmo-d2', 'grib', dateTimeString, sourceQuantity)
+      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather', 'icon-d2', 'grib', run, sourceQuantity)
       const filePath = path.join(
         directoryPath,
-        urlTokens[urlTokens.length - 1].replace('bz2', 'lz4')
+        _.join([fileName, _.replace(fileExtension, 'bz2', 'lz4')], '.')
       )
 
       const exists = await fs.pathExists(filePath)
