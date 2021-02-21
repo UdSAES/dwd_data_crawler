@@ -93,6 +93,23 @@ async function applyActionToAllFilesMatchingCriteria(basePath, criterion, action
 }
 
 // Definition of functions to evaluate criteria
+async function isRotatedGrib2WithSibling (filePath) {
+  const fileName = path.basename(filePath)
+
+  if (
+    (_.includes(fileName, 'rotated') === true) &&
+    (_.endsWith(fileName, 'grib2.lz4'))
+  ) {
+    const siblingName = await _.replace(fileName, 'rotated', 'regular')
+    const fileHasSibling = await fs.pathExists(
+      path.join(path.dirname(filePath), siblingName)
+    )
+    return fileHasSibling
+  } else {
+    return false
+  }
+}
+
 async function createdBeforeDate (filePath, dateStringIso8601) {
   const stats = await fs.stat(filePath)
   const fileBirthTime = moment(stats.birthtimeMs).utc()
