@@ -34,26 +34,33 @@ const lookup = promisify(require('dns').lookup)
 const { URL } = require('url')
 const execFile = promisify(require('child_process').execFile)
 const moment = require('moment-timezone')
-var bunyan = require('bunyan')
+const bunyan = require('bunyan')
 
 const DWD_ICON_D2_BASE_URL = 'https://opendata.dwd.de/weather/nwp/icon-d2/grib/'
-const DWD_MOSMIX_BASE_URL = 'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_L/single_stations/'
+const DWD_MOSMIX_BASE_URL =
+  'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_L/single_stations/'
 const DWD_REPORT_BASE_URL = 'https://opendata.dwd.de/weather/weather_reports/poi/'
 
 const DOWNLOAD_DIRECTORY_BASE_PATH = processenv('DOWNLOAD_DIRECTORY_BASE_PATH')
 const DOWNLOAD_ICON_D2 = Boolean(processenv('DOWNLOAD_ICON_D2')) || false
 const DOWNLOAD_MOSMIX = Boolean(processenv('DOWNLOAD_MOSMIX')) || false
 const DOWNLOAD_BEOB = Boolean(processenv('DOWNLOAD_BEOB')) || false
-const ICON_D2_CRAWL_RETRY_WAIT_MINUTES = processenv('ICON_D2_CRAWL_RETRY_WAIT_MINUTES') || 1
-const ICON_D2_COMPLETE_CYCLE_WAIT_MINUTES = processenv('ICON_D2_COMPLETE_CYCLE_WAIT_MINUTES') || 10
-const FORECAST_CRAWL_RETRY_WAIT_MINUTES = processenv('FORECAST_CRAWL_RETRY_WAIT_MINUTES') || 1
-const FORECAST_COMPLETE_CYCLE_WAIT_MINUTES = processenv('FORECAST_COMPLETE_CYCLE_WAIT_MINUTES') || 120
-const REPORT_CRAWL_RETRY_WAIT_MINUTES = processenv('REPORT_CRAWL_RETRY_WAIT_MINUTES') || 1
-const REPORT_COMPLETE_CYCLE_WAIT_MINUTES = processenv('REPORT_COMPLETE_CYCLE_WAIT_MINUTES') || 30
+const ICON_D2_CRAWL_RETRY_WAIT_MINUTES =
+  processenv('ICON_D2_CRAWL_RETRY_WAIT_MINUTES') || 1
+const ICON_D2_COMPLETE_CYCLE_WAIT_MINUTES =
+  processenv('ICON_D2_COMPLETE_CYCLE_WAIT_MINUTES') || 10
+const FORECAST_CRAWL_RETRY_WAIT_MINUTES =
+  processenv('FORECAST_CRAWL_RETRY_WAIT_MINUTES') || 1
+const FORECAST_COMPLETE_CYCLE_WAIT_MINUTES =
+  processenv('FORECAST_COMPLETE_CYCLE_WAIT_MINUTES') || 120
+const REPORT_CRAWL_RETRY_WAIT_MINUTES =
+  processenv('REPORT_CRAWL_RETRY_WAIT_MINUTES') || 1
+const REPORT_COMPLETE_CYCLE_WAIT_MINUTES =
+  processenv('REPORT_COMPLETE_CYCLE_WAIT_MINUTES') || 30
 const LOG_LEVEL = String(processenv('LOG_LEVEL') || 'info')
 
 // Instantiate logger
-var log = bunyan.createLogger({
+const log = bunyan.createLogger({
   name: 'dwd_data_crawler',
   serializers: bunyan.stdSerializers,
   level: LOG_LEVEL
@@ -62,7 +69,9 @@ log.info('instantiation of service initiated')
 
 // check if necessery DOWNLOAD_DIRECTORY_BASE_PATH env var is given
 if (_.isNil(DOWNLOAD_DIRECTORY_BASE_PATH)) {
-  log.fatal('no download directory base path given (DOWNLOAD_DIRECTORY_BASE_PATH missing)')
+  log.fatal(
+    'no download directory base path given (DOWNLOAD_DIRECTORY_BASE_PATH missing)'
+  )
   process.exit(EXIT_CODES.DOWNLOAD_DIRECTORY_BASE_PATH_NIL_ERROR)
 } else {
   log.info('DOWNLOAD_DIRECTORY_BASE_PATH is set to ', DOWNLOAD_DIRECTORY_BASE_PATH)
@@ -90,7 +99,7 @@ if (_.isNil(DOWNLOAD_DIRECTORY_BASE_PATH)) {
 async function convertDomainUrlToIPUrl (domainUrlString) {
   const domainUrl = new URL(domainUrlString)
 
-  var ip = await lookup(domainUrl.hostname)
+  let ip = await lookup(domainUrl.hostname)
   ip = ip.address
   domainUrl.hostname = ip
   return domainUrl.toString()
@@ -105,7 +114,7 @@ async function convertDomainUrlToIPUrl (domainUrlString) {
  * @return
  */
 async function downloadFile (url) {
-  var attempts = 0
+  let attempts = 0
   for (;;) {
     try {
       const result = await request({
@@ -148,8 +157,8 @@ async function reportMain () {
       continue
     }
 
-    var listOfFiles = null
-    var numberOfFilesDownloaded = 0
+    let listOfFiles = null
+    let numberOfFilesDownloaded = 0
 
     // step 1: crawl list of available grib files
     for (;;) {
@@ -162,24 +171,31 @@ async function reportMain () {
         log.error(error, 'crawling list of report files failed')
       }
 
-      log.info('waiting ' + REPORT_CRAWL_RETRY_WAIT_MINUTES + ' minutes before starting next retry for reports')
+      log.info(
+        'waiting ' +
+          REPORT_CRAWL_RETRY_WAIT_MINUTES +
+          ' minutes before starting next retry for reports'
+      )
       await delay(REPORT_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
     }
 
     log.info('crawling for reports revealed ' + listOfFiles.length + ' files')
 
     // step 2: download
-    for (var i = 0; i < listOfFiles.length; i++) {
+    for (let i = 0; i < listOfFiles.length; i++) {
       // wait before processing next file
       await delay(1)
 
       const url = listOfFiles[i]
       try {
-        var binaryContent = await downloadFile(url)
+        const binaryContent = await downloadFile(url)
         var textContent = binaryContent.toString('utf8')
         var table = dwd_csv.parseCSV(textContent)
       } catch (error) {
-        log.error({ error: error, url: url }, 'an error occured while downloading and parsing ' + url)
+        log.error(
+          { error: error, url: url },
+          'an error occured while downloading and parsing ' + url
+        )
         continue
       }
       numberOfFilesDownloaded = numberOfFilesDownloaded + 1
@@ -190,7 +206,10 @@ async function reportMain () {
         try {
           var m = moment.tz(row[0], 'DD.MM.YYYY', 'UTC')
         } catch (error) {
-          log.error({ error: error, url: url }, 'an error occured while handling the csv file')
+          log.error(
+            { error: error, url: url },
+            'an error occured while handling the csv file'
+          )
           return
         }
 
@@ -204,11 +223,17 @@ async function reportMain () {
 
       dates = _.keys(dates)
 
-      for (var j = 0; j < dates.length; j++) {
+      for (let j = 0; j < dates.length; j++) {
         const dateString = dates[j]
         const urlTokens = url.split('/')
         const fileName = urlTokens[urlTokens.length - 1]
-        const targetDirectory = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather', 'weather_reports', 'poi', dateString)
+        const targetDirectory = path.join(
+          DOWNLOAD_DIRECTORY_BASE_PATH,
+          'weather',
+          'weather_reports',
+          'poi',
+          dateString
+        )
         const targetFilePath = path.join(targetDirectory, fileName)
 
         // check if target file already exists
@@ -216,25 +241,41 @@ async function reportMain () {
         const exists = await fs.pathExists(targetFilePath)
         if (exists) {
           try {
-            const currentContent = await fs.readFile(targetFilePath, { encoding: 'utf8' })
-            const newContent = dwd_csv.mergeCSVContents(currentContent, textContent, moment.tz(dateString, 'YYYYMMDD', 'UTC').format('DD.MM.YY'))
+            const currentContent = await fs.readFile(targetFilePath, {
+              encoding: 'utf8'
+            })
+            const newContent = dwd_csv.mergeCSVContents(
+              currentContent,
+              textContent,
+              moment.tz(dateString, 'YYYYMMDD', 'UTC').format('DD.MM.YY')
+            )
             await fs.writeFile(targetFilePath, newContent, { encoding: 'utf8' })
           } catch (error) {
-            log.error({ error: error.toString(), url: url }, 'an error occured while reading, merging, and writing the existing file')
+            log.error(
+              { error: error.toString(), url: url },
+              'an error occured while reading, merging, and writing the existing file'
+            )
           }
         } else {
           try {
             const newTable = table.slice(0, 3)
             _.forEach(table.slice(3), (row) => {
-              if (row[0] !== moment.tz(dateString, 'YYYYMMDD', 'UTC').format('DD.MM.YY')) {
+              if (
+                row[0] !== moment.tz(dateString, 'YYYYMMDD', 'UTC').format('DD.MM.YY')
+              ) {
                 return
               }
 
               newTable.push(row)
             })
-            await fs.writeFile(targetFilePath, dwd_csv.generateCSV(newTable), { encoding: 'utf8' })
+            await fs.writeFile(targetFilePath, dwd_csv.generateCSV(newTable), {
+              encoding: 'utf8'
+            })
           } catch (error) {
-            log.error({ error: error, url: url }, 'an error occured while writing the new file')
+            log.error(
+              { error: error, url: url },
+              'an error occured while writing the new file'
+            )
           }
         }
       }
@@ -242,7 +283,11 @@ async function reportMain () {
     log.info('downloaded ' + numberOfFilesDownloaded + ' new REPORT files')
 
     // wait COMPLETE_CYCLE_WAIT_MINUTES minutes before polling for new files
-    log.info('waiting ' + REPORT_COMPLETE_CYCLE_WAIT_MINUTES + ' minutes before starting next reports cycle')
+    log.info(
+      'waiting ' +
+        REPORT_COMPLETE_CYCLE_WAIT_MINUTES +
+        ' minutes before starting next reports cycle'
+    )
     await delay(REPORT_COMPLETE_CYCLE_WAIT_MINUTES * 60 * 1000)
   }
 }
@@ -267,9 +312,9 @@ async function crawlMOSMIXasKMZ () {
       continue
     }
 
-    var listOfStations = null
-    var listOfFiles = []
-    var numberOfFilesDownloaded = 0
+    let listOfStations = null
+    let listOfFiles = []
+    let numberOfFilesDownloaded = 0
 
     // Crawl list of available stations
     for (;;) {
@@ -282,41 +327,55 @@ async function crawlMOSMIXasKMZ () {
         log.error(error, 'crawling list of stations failed')
       }
 
-      log.info('waiting ' + FORECAST_CRAWL_RETRY_WAIT_MINUTES + ' minutes before starting next retry for MOSMIX_L')
+      log.info(
+        'waiting ' +
+          FORECAST_CRAWL_RETRY_WAIT_MINUTES +
+          ' minutes before starting next retry for MOSMIX_L'
+      )
       await delay(FORECAST_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
     }
 
-    log.info('crawling for MOSMIX_L-forecasts revealed ' + listOfStations.length + ' stations')
+    log.info(
+      'crawling for MOSMIX_L-forecasts revealed ' + listOfStations.length + ' stations'
+    )
 
     // Build list of available .kmz-files
     for (var i = 0; i < listOfStations.length; i++) {
       const url = listOfStations[i] + 'kml/'
-      let urlElements = _.split(listOfStations[i], '/')
+      const urlElements = _.split(listOfStations[i], '/')
       var stationID = urlElements[urlElements.length - 2]
       // log.info('crawling available files for station ' + stationID)
 
       try {
-        let files = await dwd_grib.crawlListOfFilePaths(url)
+        const files = await dwd_grib.crawlListOfFilePaths(url)
         listOfFiles = _.concat(listOfFiles, files)
       } catch (error) {
         log.error(error, 'crawling list of files for station ' + stationID + ' failed')
       }
     }
 
-    log.info('crawling for MOSMIX_L-forecasts revealed ' + listOfFiles.length + ' files')
+    log.info(
+      'crawling for MOSMIX_L-forecasts revealed ' + listOfFiles.length + ' files'
+    )
 
     // Download all files unless they already exist
     for (var i = 0; i < listOfFiles.length; i++) {
       await delay(1) // wait before processing next file
 
-      let url = listOfFiles[i]
-      var fileName = _.last(_.split(url, '/'))
-      var timeStamp = _.split(fileName, '_')[2]
+      const url = listOfFiles[i]
+      const fileName = _.last(_.split(url, '/'))
+      const timeStamp = _.split(fileName, '_')[2]
       var stationID = _.split(_.split(fileName, '_')[3], '.')[0]
-      var extension = _.split(fileName, '.')[1]
-      var fileNameOnDisk = stationID + '-MOSMIX.' + extension
+      const extension = _.split(fileName, '.')[1]
+      const fileNameOnDisk = stationID + '-MOSMIX.' + extension
 
-      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather', 'local_forecasts', 'mos', timeStamp)
+      const directoryPath = path.join(
+        DOWNLOAD_DIRECTORY_BASE_PATH,
+        'weather',
+        'local_forecasts',
+        'mos',
+        timeStamp
+      )
       const targetFilePath = path.join(directoryPath, fileNameOnDisk)
 
       const exists = await fs.pathExists(targetFilePath)
@@ -330,7 +389,10 @@ async function crawlMOSMIXasKMZ () {
         var binaryContent = await downloadFile(url)
         log.debug('downloading new forecast ' + fileName)
       } catch (error) {
-        log.error({ error: error, url: url }, 'an error occured while downloading ' + fileName)
+        log.error(
+          { error: error, url: url },
+          'an error occured while downloading ' + fileName
+        )
         continue
       }
 
@@ -338,7 +400,10 @@ async function crawlMOSMIXasKMZ () {
         await fs.ensureDir(directoryPath)
         await fs.writeFile(targetFilePath, binaryContent, { encoding: null })
       } catch (error) {
-        log.fatal({ error: error, filePath: targetFilePath }, 'storing file at ' + targetFilePath + ' failed')
+        log.fatal(
+          { error: error, filePath: targetFilePath },
+          'storing file at ' + targetFilePath + ' failed'
+        )
         process.exit(1)
       }
       numberOfFilesDownloaded = numberOfFilesDownloaded + 1
@@ -346,7 +411,11 @@ async function crawlMOSMIXasKMZ () {
     log.info('downloaded ' + numberOfFilesDownloaded + ' new MOSMIX-forecasts')
 
     // Wait COMPLETE_CYCLE_WAIT_MINUTES minutes before polling for new files
-    log.info('waiting ' + FORECAST_COMPLETE_CYCLE_WAIT_MINUTES + ' minutes before starting next forecast cycle')
+    log.info(
+      'waiting ' +
+        FORECAST_COMPLETE_CYCLE_WAIT_MINUTES +
+        ' minutes before starting next forecast cycle'
+    )
     await delay(FORECAST_COMPLETE_CYCLE_WAIT_MINUTES * 60 * 1000)
   }
 }
@@ -372,8 +441,8 @@ async function ICON_D2Main () {
       continue
     }
 
-    var listOfFiles = null
-    var numberOfFilesDownloaded = 0
+    let listOfFiles = null
+    let numberOfFilesDownloaded = 0
 
     // step 1: crawl list of available grib2 files
     for (;;) {
@@ -386,14 +455,18 @@ async function ICON_D2Main () {
         log.error(error, 'crawling list of grib2 files failed')
       }
 
-      log.info('waiting ' + ICON_D2_CRAWL_RETRY_WAIT_MINUTES + ' before starting next retry for grib')
+      log.info(
+        'waiting ' +
+          ICON_D2_CRAWL_RETRY_WAIT_MINUTES +
+          ' before starting next retry for grib'
+      )
       await delay(ICON_D2_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
     }
 
     log.info('crawling for grib revealed ' + listOfFiles.length + ' files')
 
     // step 2: download and store all files, if they have not been downloaded, yet
-    for (var i = 0; i < listOfFiles.length; i++) {
+    for (let i = 0; i < listOfFiles.length; i++) {
       // wait before processing next file
       await delay(1)
 
@@ -402,7 +475,10 @@ async function ICON_D2Main () {
       const sourceQuantity = _.nth(urlTokens, -2)
       const fileNameDotSeparated = _.split(_.nth(urlTokens, -1), '.')
       const fileName = _.join(_.dropRight(fileNameDotSeparated, 2), '.')
-      const fileExtension = _.join(_.drop(fileNameDotSeparated, fileNameDotSeparated.length - 2), '.')
+      const fileExtension = _.join(
+        _.drop(fileNameDotSeparated, fileNameDotSeparated.length - 2),
+        '.'
+      )
       const fileNameTokens = _.split(fileName, '_')
 
       const model = _.nth(fileNameTokens, 0) // icon-d2
@@ -415,10 +491,19 @@ async function ICON_D2Main () {
       const field = _.join(_.drop(fileNameTokens, 7), '_') // aswdifd_s
 
       if (field !== sourceQuantity) {
-        log.error(`the identified sourceQuantity ${sourceQuantity} does not match the field ${field} parsed from the filename!`)
+        log.error(
+          `the identified sourceQuantity ${sourceQuantity} does not match the field ${field} parsed from the filename!`
+        )
       }
 
-      const directoryPath = path.join(DOWNLOAD_DIRECTORY_BASE_PATH, 'weather', 'icon-d2', 'grib', run, sourceQuantity)
+      const directoryPath = path.join(
+        DOWNLOAD_DIRECTORY_BASE_PATH,
+        'weather',
+        'icon-d2',
+        'grib',
+        run,
+        sourceQuantity
+      )
       const filePath = path.join(
         directoryPath,
         _.join([fileName, _.replace(fileExtension, 'bz2', 'lz4')], '.')
@@ -447,7 +532,11 @@ async function ICON_D2Main () {
     log.info('downloaded ' + numberOfFilesDownloaded + ' new ICON-D2-forecasts')
 
     // wait COMPLETE_CYCLE_WAIT_MINUTES minutes before polling for new files
-    log.info('waiting ' + ICON_D2_COMPLETE_CYCLE_WAIT_MINUTES + ' minutes before starting next ICON-D2 cycle')
+    log.info(
+      'waiting ' +
+        ICON_D2_COMPLETE_CYCLE_WAIT_MINUTES +
+        ' minutes before starting next ICON-D2 cycle'
+    )
     await delay(ICON_D2_COMPLETE_CYCLE_WAIT_MINUTES * 60 * 1000)
   }
 }
@@ -459,7 +548,9 @@ log.debug('DOWNLOAD_MOSMIX is ', DOWNLOAD_MOSMIX)
 log.debug('DOWNLOAD_BEOB is ', DOWNLOAD_BEOB)
 
 if ((DOWNLOAD_ICON_D2 || DOWNLOAD_MOSMIX || DOWNLOAD_BEOB) === false) {
-  log.warn('Nothing to do. Did you set DOWNLOAD_ICON_D2/DOWNLOAD_MOSMIX/DOWNLOAD_BEOB correctly?')
+  log.warn(
+    'Nothing to do. Did you set DOWNLOAD_ICON_D2/DOWNLOAD_MOSMIX/DOWNLOAD_BEOB correctly?'
+  )
 }
 
 if (DOWNLOAD_ICON_D2 === true) {

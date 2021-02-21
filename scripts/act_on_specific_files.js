@@ -19,7 +19,7 @@ const CRITERION = processenv('CRITERION')
 const THRESHOLD = processenv('THRESHOLD')
 
 // Instantiate logger
-let log = bunyan.createLogger({
+const log = bunyan.createLogger({
   name: 'act_on_specific_files.js',
   level: 'debug'
 })
@@ -39,8 +39,13 @@ async function checkIfConfigIsValid () {
   } else if (!(await fs.pathExists(NEW_DIRECTORY_BASE_PATH))) {
     log.fatal('FATAL: NEW_DIRECTORY_BASE_PATH is given but does not exist')
     process.exit(1)
-  } else if ((_.isNil(CRITERION))  || !(CRITERION === 'rotated' || CRITERION === 'oldest')) {
-    log.fatal('FATAL: environment variable CRITERION missing or is not set to "rotated" or "oldest"')
+  } else if (
+    _.isNil(CRITERION) ||
+    !(CRITERION === 'rotated' || CRITERION === 'oldest')
+  ) {
+    log.fatal(
+      'FATAL: environment variable CRITERION missing or is not set to "rotated" or "oldest"'
+    )
     process.exit(1)
   } else if (!_.isString(THRESHOLD)) {
     log.fatal('FATAL: environment variable THRESHOLD missing or not a string')
@@ -55,7 +60,7 @@ async function checkIfConfigIsValid () {
 }
 
 // Define functions
-async function applyActionToAllFilesMatchingCriteria(basePath, criterion, action) {
+async function applyActionToAllFilesMatchingCriteria (basePath, criterion, action) {
   log.debug(`traversing directory ${basePath}`)
   let numberOfFilesActedOn = 0
 
@@ -67,7 +72,7 @@ async function applyActionToAllFilesMatchingCriteria(basePath, criterion, action
     return
   }
 
-  for (let item of dirContents) {
+  for (const item of dirContents) {
     const itemPath = path.join(basePath, item)
     const itemProperties = await fs.stat(itemPath)
 
@@ -96,10 +101,7 @@ async function applyActionToAllFilesMatchingCriteria(basePath, criterion, action
 async function isRotatedGrib2WithSibling (filePath) {
   const fileName = path.basename(filePath)
 
-  if (
-    (_.includes(fileName, 'rotated') === true) &&
-    (_.endsWith(fileName, 'grib2.lz4'))
-  ) {
+  if (_.includes(fileName, 'rotated') === true && _.endsWith(fileName, 'grib2.lz4')) {
     const siblingName = await _.replace(fileName, 'rotated', 'regular')
     const fileHasSibling = await fs.pathExists(
       path.join(path.dirname(filePath), siblingName)
@@ -122,9 +124,11 @@ async function filePathHasDateBefore (filePath, dateStringIso8601) {
   const regex = /^201[8-9]{1}[0-1]{1}[0-9]{3,5}$/
   const threshold = moment(dateStringIso8601).utc()
   const filePathParts = _.split(filePath, path.sep)
-  const forecastRun = String(_.find(filePathParts, function (part) {
-    return part.match(regex)
-  }))
+  const forecastRun = String(
+    _.find(filePathParts, function (part) {
+      return part.match(regex)
+    })
+  )
   let forecastRunAsObject = null
   if (forecastRun.length === 8) {
     forecastRunAsObject = moment(forecastRun).utc()
@@ -137,11 +141,7 @@ async function filePathHasDateBefore (filePath, dateStringIso8601) {
 
 // Definition of actions
 async function moveToNewBasedirKeepSubdirs (filePathOld, basePathOld, basePathNew) {
-  const filePathNew = await _.replace(
-    filePathOld,
-    basePathOld,
-    basePathNew
-  )
+  const filePathNew = await _.replace(filePathOld, basePathOld, basePathNew)
 
   try {
     await fs.move(filePathOld, filePathNew)
@@ -169,10 +169,7 @@ async function moveAllRotatedGrib2Files (basePathOld, basePathNew) {
         for (const file of files) {
           // Iff there is a 'regular' version,  mark the 'rotated' one for removal
           const filePath = path.join(subSubDirPath, file)
-          if (
-            (_.includes(file, 'rotated') === true) &&
-            (_.endsWith(file, 'grib2.lz4'))
-          ) {
+          if (_.includes(file, 'rotated') === true && _.endsWith(file, 'grib2.lz4')) {
             const sibling = await _.replace(file, 'rotated', 'regular')
             const fileHasSibling = await fs.pathExists(
               path.join(subSubDirPath, sibling)
@@ -182,11 +179,7 @@ async function moveAllRotatedGrib2Files (basePathOld, basePathNew) {
 
               // Move the rotated file to a separate directory
               const filePathOld = filePath
-              const filePathNew = await _.replace(
-                filePathOld,
-                basePathOld,
-                basePathNew
-              )
+              const filePathNew = await _.replace(filePathOld, basePathOld, basePathNew)
 
               try {
                 await fs.move(filePathOld, filePathNew)
@@ -237,7 +230,10 @@ const main = async function () {
       if (gribFilesBasePathExists) {
         try {
           await fs.ensureDir(rotatedFilesBasePath)
-          totalFilesMoved = await moveAllRotatedGrib2Files(gribFilesBasePath, rotatedFilesBasePath)
+          totalFilesMoved = await moveAllRotatedGrib2Files(
+            gribFilesBasePath,
+            rotatedFilesBasePath
+          )
         } catch (error) {
           log.fatal(error)
           process.exit(1)
