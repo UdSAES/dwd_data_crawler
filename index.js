@@ -14,7 +14,7 @@ const dwd_grib = require('./lib/dwd_grib')
 const dwd_csv = require('./lib/dwd_csv')
 const delay = require('delay')
 const fs = require('fs-extra')
-const processenv = require('processenv')
+const { processenv } = require('processenv')
 const request = require('request-promise-native')
 const path = require('path')
 const lookup = promisify(require('dns').lookup)
@@ -29,22 +29,22 @@ const DWD_MOSMIX_BASE_URL =
 const DWD_REPORT_BASE_URL = 'https://opendata.dwd.de/weather/weather_reports/poi/'
 
 const DOWNLOAD_DIRECTORY_BASE_PATH = processenv('DOWNLOAD_DIRECTORY_BASE_PATH')
-const DOWNLOAD_ICON_D2 = Boolean(processenv('DOWNLOAD_ICON_D2')) || false
-const DOWNLOAD_MOSMIX = Boolean(processenv('DOWNLOAD_MOSMIX')) || false
-const DOWNLOAD_BEOB = Boolean(processenv('DOWNLOAD_BEOB')) || false
+const DOWNLOAD_ICON_D2 = Boolean(processenv('DOWNLOAD_ICON_D2')) ?? false
+const DOWNLOAD_MOSMIX = Boolean(processenv('DOWNLOAD_MOSMIX')) ?? false
+const DOWNLOAD_BEOB = Boolean(processenv('DOWNLOAD_BEOB')) ?? false
 const ICON_D2_CRAWL_RETRY_WAIT_MINUTES =
-  processenv('ICON_D2_CRAWL_RETRY_WAIT_MINUTES') || 1
+  processenv('ICON_D2_CRAWL_RETRY_WAIT_MINUTES') ?? 1
 const ICON_D2_COMPLETE_CYCLE_WAIT_MINUTES =
-  processenv('ICON_D2_COMPLETE_CYCLE_WAIT_MINUTES') || 10
+  processenv('ICON_D2_COMPLETE_CYCLE_WAIT_MINUTES') ?? 10
 const FORECAST_CRAWL_RETRY_WAIT_MINUTES =
-  processenv('FORECAST_CRAWL_RETRY_WAIT_MINUTES') || 1
+  processenv('FORECAST_CRAWL_RETRY_WAIT_MINUTES') ?? 1
 const FORECAST_COMPLETE_CYCLE_WAIT_MINUTES =
-  processenv('FORECAST_COMPLETE_CYCLE_WAIT_MINUTES') || 120
+  processenv('FORECAST_COMPLETE_CYCLE_WAIT_MINUTES') ?? 120
 const REPORT_CRAWL_RETRY_WAIT_MINUTES =
-  processenv('REPORT_CRAWL_RETRY_WAIT_MINUTES') || 1
+  processenv('REPORT_CRAWL_RETRY_WAIT_MINUTES') ?? 1
 const REPORT_COMPLETE_CYCLE_WAIT_MINUTES =
-  processenv('REPORT_COMPLETE_CYCLE_WAIT_MINUTES') || 30
-const LOG_LEVEL = String(processenv('LOG_LEVEL') || 'info')
+  processenv('REPORT_COMPLETE_CYCLE_WAIT_MINUTES') ?? 30
+const LOG_LEVEL = processenv('LOG_LEVEL', 'info')
 
 // Instantiate logger
 const log = bunyan.createLogger({
