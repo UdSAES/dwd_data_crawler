@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2018 UdS AES <https://www.uni-saarland.de/lehrstuhl/frey.html>
+# SPDX-License-Identifier: MIT
+
 # Start at current LTS release, but specify version explicitly
 FROM node:14-alpine3.11 AS production
 

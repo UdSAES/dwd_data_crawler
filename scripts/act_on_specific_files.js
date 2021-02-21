@@ -1,7 +1,9 @@
+// SPDX-FileCopyrightText: 2018 UdS AES <https://www.uni-saarland.de/lehrstuhl/frey.html>
+// SPDX-License-Identifier: MIT
+
 // One-off admin process to apply actions to specific files, e.g.
 // -- delete grib2-files in rotated coordinates
 // -- move oldest files to separate harddisk in order to gain space
-// SPDX-License-Identifier: MIT
 
 'use strict'
 
