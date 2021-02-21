@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "lint": "standard",
+    "format": "prettier-standard --lint '**/*.{js,json}'",
     "test": "mocha"
   },
   "author": "Moritz Stüber <moritz.stueber@aut.uni-saarland.de>",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "mocha": "^8.3.0",
+    "prettier-standard": "^16.4.1",
     "standard": "^16.0.3"
   },
   "standard": {
