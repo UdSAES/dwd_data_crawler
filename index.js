@@ -458,6 +458,10 @@ log.debug('DOWNLOAD_ICON_D2 is ', DOWNLOAD_ICON_D2)
 log.debug('DOWNLOAD_MOSMIX is ', DOWNLOAD_MOSMIX)
 log.debug('DOWNLOAD_BEOB is ', DOWNLOAD_BEOB)
 
+if ((DOWNLOAD_ICON_D2 || DOWNLOAD_MOSMIX || DOWNLOAD_BEOB) === false) {
+  log.warn('Nothing to do. Did you set DOWNLOAD_ICON_D2/DOWNLOAD_MOSMIX/DOWNLOAD_BEOB correctly?')
+}
+
 if (DOWNLOAD_ICON_D2 === true) {
   ICON_D2Main()
 }
