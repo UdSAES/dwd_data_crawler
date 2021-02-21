@@ -9,20 +9,20 @@
   "author": "Florian Wagner <florian.wagner@aut.uni-saarland.de>",
   "license": "MIT",
   "dependencies": {
-    "bunyan": "^1.8.12",
-    "cheerio": "^1.0.0-rc.2",
-    "delay": "^2.0.0",
-    "fs-extra": "^5.0.0",
-    "lodash": "^4.17.10",
-    "moment": "^2.22.2",
-    "moment-timezone": "^0.5.21",
-    "processenv": "^0.1.1",
-    "request": "^2.88.0",
-    "request-promise-native": "^1.0.5"
+    "bunyan": "^1.8.15",
+    "cheerio": "^1.0.0-rc.5",
+    "delay": "^5.0.0",
+    "fs-extra": "^9.1.0",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.1",
+    "moment-timezone": "^0.5.33",
+    "processenv": "^3.0.3",
+    "request": "^2.88.2",
+    "request-promise-native": "^1.0.9"
   },
   "devDependencies": {
-    "mocha": "^5.2.0",
-    "standard": "^12.0.1"
+    "mocha": "^8.3.0",
+    "standard": "^16.0.3"
   },
   "standard": {
     "env": [
