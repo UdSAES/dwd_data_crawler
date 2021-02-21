@@ -36,16 +36,16 @@ const execFile = promisify(require('child_process').execFile)
 const moment = require('moment-timezone')
 var bunyan = require('bunyan')
 
-const DWD_COSMO_D2_BASE_URL = 'https://opendata.dwd.de/weather/nwp/cosmo-d2/grib/'
+const DWD_ICON_D2_BASE_URL = 'https://opendata.dwd.de/weather/nwp/cosmo-d2/grib/'
 const DWD_MOSMIX_BASE_URL = 'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_L/single_stations/'
 const DWD_REPORT_BASE_URL = 'https://opendata.dwd.de/weather/weather_reports/poi/'
 
 const DOWNLOAD_DIRECTORY_BASE_PATH = processenv('DOWNLOAD_DIRECTORY_BASE_PATH')
-const DOWNLOAD_COSMO_D2 = Boolean(processenv('DOWNLOAD_COSMO_D2')) || false
+const DOWNLOAD_ICON_D2 = Boolean(processenv('DOWNLOAD_ICON_D2')) || false
 const DOWNLOAD_MOSMIX = Boolean(processenv('DOWNLOAD_MOSMIX')) || false
 const DOWNLOAD_BEOB = Boolean(processenv('DOWNLOAD_BEOB')) || false
-const COSMO_D2_CRAWL_RETRY_WAIT_MINUTES = processenv('COSMO_D2_CRAWL_RETRY_WAIT_MINUTES') || 1
-const COSMO_D2_COMPLETE_CYCLE_WAIT_MINUTES = processenv('COSMO_D2_COMPLETE_CYCLE_WAIT_MINUTES') || 10
+const ICON_D2_CRAWL_RETRY_WAIT_MINUTES = processenv('ICON_D2_CRAWL_RETRY_WAIT_MINUTES') || 1
+const ICON_D2_COMPLETE_CYCLE_WAIT_MINUTES = processenv('ICON_D2_COMPLETE_CYCLE_WAIT_MINUTES') || 10
 const FORECAST_CRAWL_RETRY_WAIT_MINUTES = processenv('FORECAST_CRAWL_RETRY_WAIT_MINUTES') || 1
 const FORECAST_COMPLETE_CYCLE_WAIT_MINUTES = processenv('FORECAST_COMPLETE_CYCLE_WAIT_MINUTES') || 120
 const REPORT_CRAWL_RETRY_WAIT_MINUTES = processenv('REPORT_CRAWL_RETRY_WAIT_MINUTES') || 1
@@ -352,10 +352,10 @@ async function crawlMOSMIXasKMZ () {
 }
 
 /**
- * COSMO_D2Main asynchronously downloads the COSMO D2 data in an endless lookup
+ * ICON_D2Main asynchronously downloads the ICON D2 data in an endless lookup
  */
-async function COSMO_D2Main () {
-  log.info('start crawling COSMO-D2-forecasts')
+async function ICON_D2Main () {
+  log.info('start crawling ICON-D2-forecasts')
   for (;;) {
     // Using the IP address instead of domain is necessary as with each https
     // request for data based on the url a DNS resolve is performed. After
@@ -365,10 +365,10 @@ async function COSMO_D2Main () {
     // on the IP instead of the domain name
 
     try {
-      var ipBaseUrl = await convertDomainUrlToIPUrl(DWD_COSMO_D2_BASE_URL)
+      var ipBaseUrl = await convertDomainUrlToIPUrl(DWD_ICON_D2_BASE_URL)
     } catch (error) {
-      log.error(error, 'resolving IP-address for DWD_COSMO_D2_BASE_URL failed')
-      await delay(COSMO_D2_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
+      log.error(error, 'resolving IP-address for DWD_ICON_D2_BASE_URL failed')
+      await delay(ICON_D2_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
       continue
     }
 
@@ -386,8 +386,8 @@ async function COSMO_D2Main () {
         log.error(error, 'crawling list of grib2 files failed')
       }
 
-      log.info('waiting ' + COSMO_D2_CRAWL_RETRY_WAIT_MINUTES + ' before starting next retry for grib')
-      await delay(COSMO_D2_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
+      log.info('waiting ' + ICON_D2_CRAWL_RETRY_WAIT_MINUTES + ' before starting next retry for grib')
+      await delay(ICON_D2_CRAWL_RETRY_WAIT_MINUTES * 60 * 1000)
     }
 
     log.info('crawling for grib revealed ' + listOfFiles.length + ' files')
@@ -440,22 +440,22 @@ async function COSMO_D2Main () {
       }
       numberOfFilesDownloaded = numberOfFilesDownloaded + 1
     }
-    log.info('downloaded ' + numberOfFilesDownloaded + ' new COSMO-D2-forecasts')
+    log.info('downloaded ' + numberOfFilesDownloaded + ' new ICON-D2-forecasts')
 
     // wait COMPLETE_CYCLE_WAIT_MINUTES minutes before polling for new files
-    log.info('waiting ' + COSMO_D2_COMPLETE_CYCLE_WAIT_MINUTES + ' minutes before starting next COSMO-D2 cycle')
-    await delay(COSMO_D2_COMPLETE_CYCLE_WAIT_MINUTES * 60 * 1000)
+    log.info('waiting ' + ICON_D2_COMPLETE_CYCLE_WAIT_MINUTES + ' minutes before starting next ICON-D2 cycle')
+    await delay(ICON_D2_COMPLETE_CYCLE_WAIT_MINUTES * 60 * 1000)
   }
 }
 
-// Start three concurrent loops to query MOSMIX, COSMO-D2 and measurement data
+// Start three concurrent loops to query MOSMIX, ICON-D2 and measurement data
 
-log.debug('DOWNLOAD_COSMO_D2 is ', DOWNLOAD_COSMO_D2)
+log.debug('DOWNLOAD_ICON_D2 is ', DOWNLOAD_ICON_D2)
 log.debug('DOWNLOAD_MOSMIX is ', DOWNLOAD_MOSMIX)
 log.debug('DOWNLOAD_BEOB is ', DOWNLOAD_BEOB)
 
-if (DOWNLOAD_COSMO_D2 === true) {
-  COSMO_D2Main()
+if (DOWNLOAD_ICON_D2 === true) {
+  ICON_D2Main()
 }
 
 if (DOWNLOAD_MOSMIX === true) {
