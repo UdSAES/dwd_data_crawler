@@ -26,10 +26,10 @@ dwd_data_crawler is configured by means of environment variables. Currently the
 following environment variables are supported:
  * `DOWNLOAD_DIRECTORY_BASE_PATH`: Base path of the directory where the downloaded
  files shall be stored. This is a mandatory parameter.
- * `COSMO_DE_CRAWL_RETRY_WAIT_MINUTES`: Number of **minutes** to wait before next attempt to
+ * `ICON_D2_CRAWL_RETRY_WAIT_MINUTES`: Number of **minutes** to wait before next attempt to
  crawl for COSMO DE data, when crawling data failed. This is an optional parameter.
  Standard value is `1`.
- * `COSMO_DE_COMPLETE_CYCLE_WAIT_MINUTES`: Number of **minutes** to wait before start next
+ * `ICON_D2_COMPLETE_CYCLE_WAIT_MINUTES`: Number of **minutes** to wait before start next
  crawl cycle for COSMO DE data, once the current cycle is finished. This is an optional parameter.
  Standard values is `10`.
  * `FORECAST_CRAWL_RETRY_WAIT_MINUTES`: Number of **minutes** to wait before next attempt to
@@ -69,7 +69,7 @@ The dwd_data_crawler is implemented as three endless loops that run concurrently
 
 * reportMain cyclically queries the data from /weather/weather_reports/poi
 * forecastMain cyclically queries the data from /weather/local_forecasts/poi
-* COSMO_DEMain cyclically queries the data from /weather/cosmo/de/grib
+* ICON_D2Main cyclically queries the data from /weather/icon-d2/grib
 
 ### reportMain
 Report data are queried in an endless loop as shown in the followig state chart.
@@ -95,17 +95,17 @@ Afterwards, for each item in the list a download is performed. The download is i
 
 As DWD reuses paths of report files the downloaded files are stored in a slightly different file structur in order to prevent new files overriding old files. For details see [file storage for forecasts](#dataStorageStructureForecast).
 
-### COSMO_DEMain
+### ICON_D2Main
 Forecast data are queried in an endless loop as shown in the followig state chart.
 <img src="./docs/cosmo_de_loop.svg" width="600">
 
 At the beginning of each loop the IP address of opendata.dwd.de is queried, as due to too many requests the DNS refuses services, when all requests are made by domain name.
 
-When the IP address is known all available paths of forecast files are queried as a list of items. If an error occurs while querying the list of paths of COSMO DE files, a wait time of `COSMO_DE_CRAWL_RETRY_WAIT_MINUTES ` is triggered before the next attempt is made to query the list of paths of report files.
+When the IP address is known all available paths of forecast files are queried as a list of items. If an error occurs while querying the list of paths of COSMO DE files, a wait time of `ICON_D2_CRAWL_RETRY_WAIT_MINUTES ` is triggered before the next attempt is made to query the list of paths of report files.
 
 Afterwards, for each item in the list a download is performed. The download is implemented in a way, that three attempts are made to download the (this due to potential rate limiting being active at DWD). The file provided by DWD are grib2 files compressed using bzip2. While bzip2 provides a very good compression rate, decompressing bzip2 files is rather slow. Therefore the bzip2 files are decompressed and compressed again using <a href="https://en.wikipedia.org/wiki/LZ4_(compression_algorithm)">lz4 compression algorithm</a>.
 
-Once all items have been downloaded successully, a pause is initiated with a parameterizable wait time of `COSMO_DE_COMPLETE_CYCLE_WAIT_MINUTES `.
+Once all items have been downloaded successully, a pause is initiated with a parameterizable wait time of `ICON_D2_COMPLETE_CYCLE_WAIT_MINUTES `.
 
 As DWD reuses paths of report files the downloaded files are stored in a slightly different file structur in order to prevent new files overriding old files. For details see [file storage for COSMO DE forecasts](#dataStorageStructureCOSMODE).
 
@@ -149,8 +149,8 @@ where
 
 If you want to load the reported data for 9th February 2018 (UTC) of station 01271 the corresponding data can be found in the file `/$DOWNLOAD_DIRECTORY_BASE_PATH/weather/local_forecasts/poi/20180209/01271-BEOB.csv`
 
-### <a name="dataStorageStructureCOSMODE"></a> /weather/cosmo/de/grib
-#### Filepath on opendata.dwd.de
+### <a name="dataStorageStructureCOSMODE"></a> /weather/icon-d2/grib
+#### ~~Filepath on opendata.dwd.de~~ <- needs update!
 `/weather/cosmo/de/grib/$HH/$dwd_voi/COSMODE_single_level_elements_$DWD_VOI_$YYYY$MM$DD$HH_$FH.grib2.bz2`
 
 where
@@ -162,8 +162,8 @@ where
 * `$DD` is the 2 digit day of month of the forecast run the data refers to (01 to 31)
 * `$FH` is the 3 digit forecast hour of the forecast run the data refers to (e.g. 021 for forecast in 21 hours as of $YYYY-$MM-$DD $HH:00:00)
 
-#### Filepath on local storage
-`/$DOWNLOAD_DIRECTORY_BASE_PATH/cosmo/de/grib/$YYYY$MM$DD$HH/$dwd_voi/COSMODE_single_level_elements_$DWD_VOI_$YYYY$MM$DD$HH_$FH.grib2.bz2`
+#### ~~Filepath on local storage~~ <- needs update!
+`/$DOWNLOAD_DIRECTORY_BASE_PATH/icon-d2/grib/$YYYY$MM$DD$HH/$dwd_voi/COSMODE_single_level_elements_$DWD_VOI_$YYYY$MM$DD$HH_$FH.grib2.bz2`
 
 where
 * `$DOWN_LOAD_DIRECTORY_BASE_PATH` is the base path for the downloaded data on the local storage
