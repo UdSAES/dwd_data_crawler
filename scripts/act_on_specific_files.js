@@ -10,7 +10,7 @@
 const _ = require('lodash')
 const fs = require('fs-extra')
 const path = require('path')
-const processenv = require('processenv')
+const { processenv } = require('processenv')
 const bunyan = require('bunyan')
 const moment = require('moment')
 
