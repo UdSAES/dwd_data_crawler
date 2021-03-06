@@ -4,6 +4,7 @@
 // One-off admin process to apply actions to specific files, e.g.
 // -- delete grib2-files in rotated coordinates
 // -- move oldest files to separate harddisk in order to gain space
+// -- build an index of all files using Elasticsearch 7.x.x
 
 'use strict'
 
@@ -13,6 +14,7 @@ const path = require('path')
 const { processenv } = require('processenv')
 const bunyan = require('bunyan')
 const moment = require('moment')
+const { Client } = require('@elastic/elasticsearch')
 
 // Load configuration
 const DOWNLOAD_DIRECTORY_BASE_PATH = processenv('DOWNLOAD_DIRECTORY_BASE_PATH')
@@ -316,6 +318,9 @@ const main = async function () {
 
   let totalFilesActedOn = 0
 
+  const client = new Client({ node: ELASTICSEARCH_ORIGIN })
+  const index = 'dwd-data'
+
   // Select criteria for identifying relevant files
   log.info(`attempting to apply action to files according to CRITERION '${CRITERION}'`)
   switch (CRITERION) {
@@ -376,6 +381,28 @@ const main = async function () {
         DOWNLOAD_DIRECTORY_BASE_PATH,
         olderThanEnvvarThreshold,
         moveFilesAway
+      )
+      break
+    case 'index':
+      const youngerThanEnvvarThreshold = async (filePath) => {
+        let result
+        try {
+          result = await filePathHasDateBeforeOrAfter(filePath, THRESHOLD, 'after')
+        } catch (error) {
+          throw error
+        }
+        return result
+      }
+
+      const indexFile = async (filePath) => {
+        const result = await indexFileInElasticsearch(client, index, filePath)
+        return result
+      }
+
+      totalFilesActedOn = await applyActionToAllFilesMatchingCriteria(
+        DOWNLOAD_DIRECTORY_BASE_PATH,
+        youngerThanEnvvarThreshold,
+        indexFile
       )
       break
   }

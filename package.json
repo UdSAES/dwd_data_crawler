@@ -14,6 +14,7 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@elastic/elasticsearch": "^7.11.0",
     "bunyan": "^1.8.15",
     "cheerio": "^1.0.0-rc.5",
     "delay": "^5.0.0",
