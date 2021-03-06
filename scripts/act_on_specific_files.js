@@ -107,7 +107,44 @@ async function getFieldsCosmoDe (itemPath) {}
 
 async function getFieldsCosmoD2 (itemPath) {}
 
-async function getFieldsIconD2 (itemPath) {}
+async function getFieldsIconD2 (itemPath) {
+  const fileNameWithExtension = _.last(_.split(itemPath, path.sep))
+  const fileNameDotSeparated = _.split(fileNameWithExtension, '.')
+  const fileName = _.join(_.dropRight(fileNameDotSeparated, 2), '.')
+  const fileExtension = _.join(
+    _.drop(fileNameDotSeparated, fileNameDotSeparated.length - 2),
+    '.'
+  )
+  const fileNameTokens = _.split(fileName, '_')
+  const itemProperties = await fs.stat(itemPath)
+
+  const run = moment.utc(_.nth(fileNameTokens, 4), 'YYYYMMDDHH')
+  const step = _.nth(fileNameTokens, 5)
+  const datetime = run.clone().add(_.parseInt(step), 'hours')
+
+  const fields = {
+    nwp: {
+      model: _.nth(fileNameTokens, 0),
+      scope: _.nth(fileNameTokens, 1),
+      gridType: _.nth(fileNameTokens, 2),
+      levelType: _.nth(fileNameTokens, 3),
+      run: run.toISOString(),
+      runOfDay: _.join(_.slice(_.nth(fileNameTokens, 4), 8), ''),
+      step: step,
+      level: _.nth(fileNameTokens, 6),
+      field: _.join(_.drop(fileNameTokens, 7), '_'),
+      datetime: datetime.toISOString()
+    },
+    file: {
+      path: itemPath,
+      type: fileExtension,
+      format: _.first(_.split(fileExtension, '.')),
+      size: itemProperties.size
+    }
+  }
+
+  return fields
+}
 
 // Definition of functions to evaluate criteria
 
