@@ -19,6 +19,7 @@ const DOWNLOAD_DIRECTORY_BASE_PATH = processenv('DOWNLOAD_DIRECTORY_BASE_PATH')
 const NEW_DIRECTORY_BASE_PATH = processenv('NEW_DIRECTORY_BASE_PATH')
 const CRITERION = processenv('CRITERION')
 const THRESHOLD = processenv('THRESHOLD')
+const ELASTICSEARCH_ORIGIN = processenv('ELASTICSEARCH_ORIGIN')
 
 // Instantiate logger
 const log = bunyan.createLogger({
@@ -43,20 +44,24 @@ async function checkIfConfigIsValid () {
     process.exit(1)
   } else if (
     _.isNil(CRITERION) ||
-    !(CRITERION === 'rotated' || CRITERION === 'oldest')
+    !(CRITERION === 'rotated' || CRITERION === 'oldest' || CRITERION === 'index')
   ) {
     log.fatal(
-      'FATAL: environment variable CRITERION missing or is not set to "rotated" or "oldest"'
+      'FATAL: environment variable CRITERION missing or is not set to "rotated" or "oldest" or "index"'
     )
     process.exit(1)
   } else if (!_.isString(THRESHOLD)) {
     log.fatal('FATAL: environment variable THRESHOLD missing or not a string')
+    process.exit(1)
+  } else if (_.isNil(ELASTICSEARCH_ORIGIN)) {
+    log.fatal('FATAL: environment variable ELASTICSEARCH_ORIGIN missing')
     process.exit(1)
   } else {
     log.info('DOWNLOAD_DIRECTORY_BASE_PATH is set to', DOWNLOAD_DIRECTORY_BASE_PATH)
     log.info('NEW_DIRECTORY_BASE_PATH is set to', NEW_DIRECTORY_BASE_PATH)
     log.info('CRITERION is set to', CRITERION)
     log.info('THRESHOLD is set to', THRESHOLD)
+    log.info('ELASTICSEARCH_ORIGIN is set to', ELASTICSEARCH_ORIGIN)
     log.info('configuration is valid, moving on...')
   }
 }
