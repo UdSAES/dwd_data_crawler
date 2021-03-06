@@ -186,9 +186,9 @@ async function filePathHasDateBefore (filePath, dateStringIso8601) {
   )
   let forecastRunAsObject = null
   if (forecastRun.length === 8) {
-    forecastRunAsObject = moment(forecastRun).utc()
+    forecastRunAsObject = moment.utc(forecastRun)
   } else if (forecastRun.length === 10) {
-    forecastRunAsObject = moment(forecastRun, 'YYYYMMDDHH').utc()
+    forecastRunAsObject = moment.utc(forecastRun, 'YYYYMMDDHH')
   }
 
   return moment(forecastRunAsObject).isBefore(threshold)
