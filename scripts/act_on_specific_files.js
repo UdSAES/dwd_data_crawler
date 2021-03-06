@@ -99,6 +99,16 @@ async function applyActionToAllFilesMatchingCriteria (basePath, criterion, actio
   return numberOfFilesActedOn
 }
 
+async function getFieldsBeob (itemPath) {}
+
+async function getFieldsMosmix (itemPath) {}
+
+async function getFieldsCosmoDe (itemPath) {}
+
+async function getFieldsCosmoD2 (itemPath) {}
+
+async function getFieldsIconD2 (itemPath) {}
+
 // Definition of functions to evaluate criteria
 
 // async function isRotatedGrib2WithSibling (filePath) {
@@ -204,6 +214,53 @@ async function moveAllRotatedGrib2Files (basePathOld, basePathNew) {
     process.exit(1)
   }
   return numberOfFilesMoved
+}
+
+async function indexFileInElasticsearch (client, index, filePath) {
+  // Identify model type (BEOB/MOSMIX/COSMO-DE/COSMO-D2/ICON-D2)
+
+  const fileName = _.last(_.split(filePath, path.sep))
+  let modelType = ''
+  _.forEach(['BEOB', 'MOSMIX', 'cosmo-de', 'cosmo-d2', 'icon-d2'], (substring) => {
+    if (_.includes(fileName, substring)) {
+      modelType = _.toUpper(substring)
+    }
+  })
+
+  log.debug(`modelType: '${modelType}'`)
+
+  // Fill in all fields
+  let fields = {}
+  switch (modelType) {
+    case 'BEOB':
+      fields = await getFieldsBeob(filePath)
+      break
+    case 'MOSMIX':
+      fields = await getFieldsMosmix(filePath)
+      break
+    case 'COSMO-DE':
+      fields = await getFieldsCosmoDe(filePath)
+      break
+    case 'COSMO-D2':
+      fields = await getFieldsCosmoD2(filePath)
+      break
+    case 'ICON-D2':
+      fields = await getFieldsIconD2(filePath)
+      break
+  }
+
+  log.debug(`fields: '${fields}'`)
+
+  // Index in Elasticsearch
+  // NOTE: would be better to do in bulk, but that's premature optimization (?)
+  try {
+    await client.index({
+      index: index,
+      body: fields
+    })
+  } catch (error) {
+    log.error(error)
+  }
 }
 
 // Define main function
