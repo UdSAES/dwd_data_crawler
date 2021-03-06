@@ -124,7 +124,7 @@ async function applyActionToAllFilesMatchingCriteria (basePath, criterion, actio
 // }
 
 async function filePathHasDateBefore (filePath, dateStringIso8601) {
-  const regex = /^201[8-9]{1}[0-1]{1}[0-9]{3,5}$/
+  const regex = /^20[1-2]{1}[0-9]{1}[0-1]{1}[0-9]{3,5}$/
   const threshold = moment(dateStringIso8601).utc()
   const filePathParts = _.split(filePath, path.sep)
   const forecastRun = String(
