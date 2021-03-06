@@ -175,7 +175,7 @@ async function getFieldsIconD2 (itemPath) {
 //   return moment(fileBirthTime).isBefore(threshold)
 // }
 
-async function filePathHasDateBefore (filePath, dateStringIso8601) {
+async function filePathHasDateBeforeOrAfter (filePath, dateStringIso8601, beforeOrAfter) {
   const regex = /^20[1-2]{1}[0-9]{1}[0-1]{1}[0-9]{3,5}$/
   const threshold = moment(dateStringIso8601).utc()
   const filePathParts = _.split(filePath, path.sep)
@@ -191,7 +191,12 @@ async function filePathHasDateBefore (filePath, dateStringIso8601) {
     forecastRunAsObject = moment.utc(forecastRun, 'YYYYMMDDHH')
   }
 
-  return moment(forecastRunAsObject).isBefore(threshold)
+  if (beforeOrAfter === 'before') {
+    return moment(forecastRunAsObject).isBefore(threshold)
+  }
+  if (beforeOrAfter === 'after') {
+    return moment(forecastRunAsObject).isAfter(threshold)
+  }
 }
 
 // Definition of actions
@@ -346,7 +351,7 @@ const main = async function () {
       const olderThanEnvvarThreshold = async (filePath) => {
         let result
         try {
-          result = await filePathHasDateBefore(filePath, THRESHOLD)
+          result = await filePathHasDateBeforeOrAfter(filePath, THRESHOLD, 'before')
         } catch (error) {
           throw error
         }
