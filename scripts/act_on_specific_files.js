@@ -100,27 +100,28 @@ async function applyActionToAllFilesMatchingCriteria (basePath, criterion, actio
 }
 
 // Definition of functions to evaluate criteria
-async function isRotatedGrib2WithSibling (filePath) {
-  const fileName = path.basename(filePath)
 
-  if (_.includes(fileName, 'rotated') === true && _.endsWith(fileName, 'grib2.lz4')) {
-    const siblingName = await _.replace(fileName, 'rotated', 'regular')
-    const fileHasSibling = await fs.pathExists(
-      path.join(path.dirname(filePath), siblingName)
-    )
-    return fileHasSibling
-  } else {
-    return false
-  }
-}
+// async function isRotatedGrib2WithSibling (filePath) {
+//   const fileName = path.basename(filePath)
+//
+//   if (_.includes(fileName, 'rotated') === true && _.endsWith(fileName, 'grib2.lz4')) {
+//     const siblingName = await _.replace(fileName, 'rotated', 'regular')
+//     const fileHasSibling = await fs.pathExists(
+//       path.join(path.dirname(filePath), siblingName)
+//     )
+//     return fileHasSibling
+//   } else {
+//     return false
+//   }
+// }
 
-async function createdBeforeDate (filePath, dateStringIso8601) {
-  const stats = await fs.stat(filePath)
-  const fileBirthTime = moment(stats.birthtimeMs).utc()
-  const threshold = moment(dateStringIso8601).utc()
-
-  return moment(fileBirthTime).isBefore(threshold)
-}
+// async function createdBeforeDate (filePath, dateStringIso8601) {
+//   const stats = await fs.stat(filePath)
+//   const fileBirthTime = moment(stats.birthtimeMs).utc()
+//   const threshold = moment(dateStringIso8601).utc()
+//
+//   return moment(fileBirthTime).isBefore(threshold)
+// }
 
 async function filePathHasDateBefore (filePath, dateStringIso8601) {
   const regex = /^201[8-9]{1}[0-1]{1}[0-9]{3,5}$/
