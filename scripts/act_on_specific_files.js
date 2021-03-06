@@ -209,7 +209,7 @@ async function moveAllRotatedGrib2Files (basePathOld, basePathNew) {
 const main = async function () {
   await checkIfConfigIsValid()
 
-  let totalFilesMoved = 0
+  let totalFilesActedOn = 0
 
   // Select criteria for identifying relevant files
   log.info(`attempting to apply action to files according to CRITERION '${CRITERION}'`)
@@ -232,7 +232,7 @@ const main = async function () {
       if (gribFilesBasePathExists) {
         try {
           await fs.ensureDir(rotatedFilesBasePath)
-          totalFilesMoved = await moveAllRotatedGrib2Files(
+          totalFilesActedOn = await moveAllRotatedGrib2Files(
             gribFilesBasePath,
             rotatedFilesBasePath
           )
@@ -267,14 +267,14 @@ const main = async function () {
         return result
       }
 
-      totalFilesMoved = await applyActionToAllFilesMatchingCriteria(
+      totalFilesActedOn = await applyActionToAllFilesMatchingCriteria(
         DOWNLOAD_DIRECTORY_BASE_PATH,
         olderThanEnvvarThreshold,
         moveFilesAway
       )
       break
   }
-  log.info(`successfully moved ${totalFilesMoved} files!`)
+  log.info(`successfully acted on ${totalFilesActedOn} files!`)
 }
 
 // Execute as independent script
