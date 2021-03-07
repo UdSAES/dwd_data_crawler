@@ -344,13 +344,11 @@ async function indexFileInElasticsearch (client, index, filePath) {
 
   const fileName = _.last(_.split(filePath, path.sep))
   let modelType = ''
-  _.forEach(['BEOB', 'MOSMIX', 'cosmo-de', 'cosmo-d2', 'icon-d2'], (substring) => {
+  _.forEach(['BEOB', 'MOSMIX', 'COSMODE', 'cosmo-d2', 'icon-d2'], (substring) => {
     if (_.includes(fileName, substring)) {
       modelType = _.toUpper(substring)
     }
   })
-
-  log.debug(`modelType: '${modelType}'`)
 
   // Fill in all fields
   let fields = {}
@@ -361,7 +359,7 @@ async function indexFileInElasticsearch (client, index, filePath) {
     case 'MOSMIX':
       fields = await getFieldsMosmix(filePath)
       break
-    case 'COSMO-DE':
+    case 'COSMODE':
       fields = await getFieldsCosmoDe(filePath)
       break
     case 'COSMO-D2':
@@ -371,8 +369,6 @@ async function indexFileInElasticsearch (client, index, filePath) {
       fields = await getFieldsIconD2(filePath)
       break
   }
-
-  log.debug(`fields: '${fields}'`)
 
   // Index in Elasticsearch
   // NOTE: would be better to do in bulk, but that's premature optimization (?)
