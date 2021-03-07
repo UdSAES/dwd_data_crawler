@@ -110,7 +110,44 @@ async function getFieldsBeob (itemPath) {}
 
 async function getFieldsMosmix (itemPath) {}
 
-async function getFieldsCosmoDe (itemPath) {}
+async function getFieldsCosmoDe (itemPath) {
+  const fileNameWithExtension = _.last(_.split(itemPath, path.sep))
+  const fileNameDotSeparated = _.split(fileNameWithExtension, '.')
+  const fileName = _.join(_.dropRight(fileNameDotSeparated, 2), '.')
+  const fileExtension = _.join(
+    _.drop(fileNameDotSeparated, fileNameDotSeparated.length - 2),
+    '.'
+  )
+  const fileNameTokens = _.split(fileName, '_')
+  const itemProperties = await fs.stat(itemPath)
+
+  const run = moment.utc(_.nth(_.drop(fileNameTokens, 4), -2), 'YYYYMMDDHH')
+  const step = _.nth(_.drop(fileNameTokens, 4), -1)
+  const datetime = run.clone().add(_.parseInt(step), 'hours')
+
+  const fields = {
+    nwp: {
+      model: 'cosmo-de',
+      scope: 'germany',
+      gridType: '?', // FIXME
+      levelType: _.join(_.slice(fileNameTokens, 1, 3), '-'),
+      run: run.toISOString(),
+      runOfDay: _.join(_.slice(_.nth(_.drop(fileNameTokens, 4), -2), 8), ''),
+      step: step,
+      level: '?', // FIXME
+      field: _.toLower(_.join(_.drop(_.dropRight(fileNameTokens, 2), 4), '_')),
+      datetime: datetime.toISOString()
+    },
+    file: {
+      path: itemPath,
+      type: fileExtension,
+      format: _.first(_.split(fileExtension, '.')),
+      size: itemProperties.size
+    }
+  }
+
+  return fields
+}
 
 async function getFieldsCosmoD2 (itemPath) {
   const fileNameWithExtension = _.last(_.split(itemPath, path.sep))
