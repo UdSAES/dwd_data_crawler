@@ -22,6 +22,8 @@ const NEW_DIRECTORY_BASE_PATH = processenv('NEW_DIRECTORY_BASE_PATH')
 const CRITERION = processenv('CRITERION')
 const THRESHOLD = processenv('THRESHOLD')
 const ELASTICSEARCH_ORIGIN = processenv('ELASTICSEARCH_ORIGIN')
+const INDEX_NAME_PREFIX = processenv('INDEX_NAME_PREFIX')
+const INDEX_FROM_SCRATCH = processenv('INDEX_FROM_SCRATCH')
 
 // Instantiate logger
 const log = bunyan.createLogger({
@@ -58,12 +60,20 @@ async function checkIfConfigIsValid () {
   } else if (_.isNil(ELASTICSEARCH_ORIGIN)) {
     log.fatal('FATAL: environment variable ELASTICSEARCH_ORIGIN missing')
     process.exit(1)
+  } else if (_.isNil(INDEX_NAME_PREFIX)) {
+    log.fatal('FATAL: environment variable INDEX_NAME_PREFIX missing')
+    process.exit(1)
+  } else if (_.isNil(INDEX_FROM_SCRATCH)) {
+    log.fatal('FATAL: environment variable INDEX_FROM_SCRATCH missing')
+    process.exit(1)
   } else {
     log.info('DOWNLOAD_DIRECTORY_BASE_PATH is set to', DOWNLOAD_DIRECTORY_BASE_PATH)
     log.info('NEW_DIRECTORY_BASE_PATH is set to', NEW_DIRECTORY_BASE_PATH)
     log.info('CRITERION is set to', CRITERION)
     log.info('THRESHOLD is set to', THRESHOLD)
     log.info('ELASTICSEARCH_ORIGIN is set to', ELASTICSEARCH_ORIGIN)
+    log.info('INDEX_NAME_PREFIX is set to', INDEX_NAME_PREFIX)
+    log.info('INDEX_FROM_SCRATCH is set to', INDEX_FROM_SCRATCH)
     log.info('configuration is valid, moving on...')
   }
 }
@@ -382,14 +392,89 @@ async function indexFileInElasticsearch (client, index, filePath) {
   }
 }
 
-// Define main function
+// Define main functions
+async function runIndexationOfFilesInElasticsearch () {
+  const client = new Client({ node: ELASTICSEARCH_ORIGIN })
+  const index = INDEX_NAME_PREFIX
+  let actualThreshold = THRESHOLD
+
+  // Specifiy functions to call
+  const youngerThanEnvvarThreshold = async (filePath) => {
+    const result = await filePathHasDateBeforeOrAfter(
+      filePath,
+      actualThreshold,
+      'after'
+    )
+    return result
+  }
+
+  const indexFile = async (filePath) => {
+    const result = await indexFileInElasticsearch(client, index, filePath)
+    return result
+  }
+
+  // Check whether or not the index already exists
+  let indexExists = await client.indices.exists({
+    index: index
+  })
+  indexExists = indexExists.body
+
+  // Rebuild entire index if desired
+  if (INDEX_FROM_SCRATCH === true) {
+    log.info('building an index from scratch')
+    if (indexExists === true) {
+      log.debug('deleting existing index...')
+      // Clean up and start fresh
+      await client.indices.delete({
+        index: index
+      })
+    }
+
+    log.debug(`adding new index '${index}'`)
+    await client.indices.create({
+      index: index
+    })
+  } else {
+    // Find most recent file in index
+    if (indexExists === true) {
+      const response = await client.search({
+        index: index,
+        body: {
+          query: {
+            match_all: {}
+          },
+          sort: {
+            'nwp.run': 'desc'
+          },
+          size: 1
+        }
+      })
+
+      // Disregard THRESHOLD given via ENVVAR and start at latest model run in index
+      actualThreshold = response.body.hits.hits[0]._source.nwp.run
+      log.info(`adding data after model run ${actualThreshold} to existing index...`)
+    } else {
+      await client.indices.create({
+        index: index
+      })
+    }
+  }
+
+  // Iterate over files and apply action
+  const totalFilesActedOn = await applyActionToAllFilesMatchingCriteria(
+    DOWNLOAD_DIRECTORY_BASE_PATH,
+    youngerThanEnvvarThreshold,
+    indexFile
+  )
+
+  return totalFilesActedOn
+}
+
+// Actual entrypoint to this entire mess of functions
 const main = async function () {
   await checkIfConfigIsValid()
 
   let totalFilesActedOn = 0
-
-  const client = new Client({ node: ELASTICSEARCH_ORIGIN })
-  const index = 'dwd-data'
 
   // Select criteria for identifying relevant files
   log.info(`attempting to apply action to files according to CRITERION '${CRITERION}'`)
@@ -454,26 +539,7 @@ const main = async function () {
       )
       break
     case 'index':
-      const youngerThanEnvvarThreshold = async (filePath) => {
-        let result
-        try {
-          result = await filePathHasDateBeforeOrAfter(filePath, THRESHOLD, 'after')
-        } catch (error) {
-          throw error
-        }
-        return result
-      }
-
-      const indexFile = async (filePath) => {
-        const result = await indexFileInElasticsearch(client, index, filePath)
-        return result
-      }
-
-      totalFilesActedOn = await applyActionToAllFilesMatchingCriteria(
-        DOWNLOAD_DIRECTORY_BASE_PATH,
-        youngerThanEnvvarThreshold,
-        indexFile
-      )
+      totalFilesActedOn = await runIndexationOfFilesInElasticsearch()
       break
   }
   log.info(`successfully acted on ${totalFilesActedOn} files!`)
