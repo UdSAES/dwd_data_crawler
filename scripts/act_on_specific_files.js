@@ -261,7 +261,11 @@ async function getFieldsIconD2 (itemPath) {
 //   return moment(fileBirthTime).isBefore(threshold)
 // }
 
-async function filePathHasDateBeforeOrAfter (filePath, dateStringIso8601, beforeOrAfter) {
+async function filePathHasDateBeforeOrAfter (
+  filePath,
+  dateStringIso8601,
+  beforeOrAfter
+) {
   const regex = /^20[1-2]{1}[0-9]{1}[0-1]{1}[0-9]{3,5}$/
   const threshold = moment(dateStringIso8601).utc()
   const filePathParts = _.split(filePath, path.sep)
@@ -509,26 +513,16 @@ const main = async function () {
       break
     case 'oldest':
       const olderThanEnvvarThreshold = async (filePath) => {
-        let result
-        try {
-          result = await filePathHasDateBeforeOrAfter(filePath, THRESHOLD, 'before')
-        } catch (error) {
-          throw error
-        }
+        const result = await filePathHasDateBeforeOrAfter(filePath, THRESHOLD, 'before')
         return result
       }
 
       const moveFilesAway = async (filePath) => {
-        let result
-        try {
-          result = await moveToNewBasedirKeepSubdirs(
-            filePath,
-            DOWNLOAD_DIRECTORY_BASE_PATH,
-            NEW_DIRECTORY_BASE_PATH
-          )
-        } catch (error) {
-          throw error
-        }
+        const result = await moveToNewBasedirKeepSubdirs(
+          filePath,
+          DOWNLOAD_DIRECTORY_BASE_PATH,
+          NEW_DIRECTORY_BASE_PATH
+        )
         return result
       }
 
