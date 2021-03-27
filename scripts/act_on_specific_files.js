@@ -171,16 +171,9 @@ async function getFieldsMosmix (itemPath) {
   const fileNameTokens = _.split(fileName, '-')
   const itemProperties = await fs.stat(itemPath)
 
-  const directoryName = _.nth(_.split(itemPath, path.sep), -2)
-  const issueTime = moment.utc(directoryName, 'YYYYMMDDHH')
-
   const fields = {
     model: _.nth(fileNameTokens, 1).toLowerCase(),
     scope: {
-      temporal: {
-        start: issueTime.add(1, 'hours').toISOString(),
-        end: issueTime.add(240, 'hours').toISOString()
-      },
       geographical: {
         stationId: _.nth(fileNameTokens, 0)
       }
@@ -188,9 +181,37 @@ async function getFieldsMosmix (itemPath) {
     file: {
       path: itemPath,
       type: fileExtension,
-      format: 'kml',
       size: itemProperties.size
     }
+  }
+
+  if (fileExtension === 'csv') {
+    const fileContent = await fs.readFile(itemPath, { encoding: 'utf8' })
+    const records = parse(fileContent, { columns: true, delimiter: ';', from_line: 3 })
+
+    const timestamps = _.map(records, (item) => {
+      const dateTimeString = `${item.date}_${item['time / content']}`
+      const dateTime = moment.utc(dateTimeString, 'DD.MM.YY_hh:mm')
+      return dateTime.valueOf()
+    })
+
+    const scopeCsvTemporal = {
+      start: moment.utc(_.min(timestamps)).toISOString(),
+      end: moment.utc(_.max(timestamps)).toISOString()
+    }
+
+    fields.scope.temporal = scopeCsvTemporal
+    fields.file.format = 'csv'
+  } else {
+    const directoryName = _.nth(_.split(itemPath, path.sep), -2)
+    const issueTime = moment.utc(directoryName, 'YYYYMMDDHH')
+
+    const scopeKmzTemporal = {
+      start: issueTime.add(1, 'hours').toISOString(),
+      end: issueTime.add(240, 'hours').toISOString()
+    }
+    fields.scope.temporal = scopeKmzTemporal
+    fields.file.format = 'kml'
   }
 
   return fields
