@@ -136,17 +136,24 @@ async function getFieldsCosmoDe (itemPath) {
   const datetime = run.clone().add(_.parseInt(step), 'hours')
 
   const fields = {
+    model: 'cosmo-de',
+    scope: {
+      temporal: {
+        start: datetime.toISOString(),
+        end: datetime.toISOString()
+      },
+      geographical: {
+        region: 'germany'
+      }
+    },
     nwp: {
-      model: 'cosmo-de',
-      scope: 'germany',
       gridType: '?', // FIXME
       levelType: _.join(_.slice(fileNameTokens, 1, 3), '-'),
       run: run.toISOString(),
       runOfDay: _.join(_.slice(_.nth(fileNameTokens, -2), 8), ''),
       step: step,
       level: '?', // FIXME
-      field: _.toLower(_.join(_.drop(_.dropRight(fileNameTokens, 2), 4), '_')),
-      datetime: datetime.toISOString()
+      field: _.toLower(_.join(_.drop(_.dropRight(fileNameTokens, 2), 4), '_'))
     },
     file: {
       path: itemPath,
@@ -175,17 +182,24 @@ async function getFieldsCosmoD2 (itemPath) {
   const datetime = run.clone().add(_.parseInt(step), 'hours')
 
   const fields = {
+    model: _.nth(fileNameTokens, 0),
+    scope: {
+      temporal: {
+        start: datetime.toISOString(),
+        end: datetime.toISOString()
+      },
+      geographical: {
+        region: _.nth(fileNameTokens, 1)
+      }
+    },
     nwp: {
-      model: _.nth(fileNameTokens, 0),
-      scope: _.nth(fileNameTokens, 1),
       gridType: _.nth(fileNameTokens, 2),
       levelType: _.nth(fileNameTokens, 3),
       run: run.toISOString(),
       runOfDay: _.join(_.slice(_.nth(fileNameTokens, 4), 8), ''),
       step: step,
       level: '?', // FIXME
-      field: _.toLower(_.join(_.drop(fileNameTokens, 6), '_')),
-      datetime: datetime.toISOString()
+      field: _.toLower(_.join(_.drop(fileNameTokens, 6), '_'))
     },
     file: {
       path: itemPath,
@@ -214,17 +228,24 @@ async function getFieldsIconD2 (itemPath) {
   const datetime = run.clone().add(_.parseInt(step), 'hours')
 
   const fields = {
+    model: _.nth(fileNameTokens, 0),
+    scope: {
+      temporal: {
+        start: datetime.toISOString(),
+        end: datetime.toISOString()
+      },
+      geographical: {
+        region: _.nth(fileNameTokens, 1)
+      }
+    },
     nwp: {
-      model: _.nth(fileNameTokens, 0),
-      scope: _.nth(fileNameTokens, 1),
       gridType: _.nth(fileNameTokens, 2),
       levelType: _.nth(fileNameTokens, 3),
       run: run.toISOString(),
       runOfDay: _.join(_.slice(_.nth(fileNameTokens, 4), 8), ''),
       step: step,
       level: _.nth(fileNameTokens, 6),
-      field: _.join(_.drop(fileNameTokens, 7), '_'),
-      datetime: datetime.toISOString()
+      field: _.join(_.drop(fileNameTokens, 7), '_')
     },
     file: {
       path: itemPath,
@@ -423,7 +444,7 @@ async function runIndexationOfFilesInElasticsearch () {
   })
   indexExists = indexExists.body
 
-  // Rebuild entire index if desired
+  // Ensure that the index exists and decide at which datetime indexing should start
   if (INDEX_FROM_SCRATCH === true) {
     log.info('building an index from scratch')
     if (indexExists === true) {
@@ -448,14 +469,14 @@ async function runIndexationOfFilesInElasticsearch () {
             match_all: {}
           },
           sort: {
-            'nwp.run': 'desc'
+            'scope.temporal.start': 'desc'
           },
           size: 1
         }
       })
 
       // Disregard THRESHOLD given via ENVVAR and start at latest model run in index
-      actualThreshold = response.body.hits.hits[0]._source.nwp.run
+      actualThreshold = response.body.hits.hits[0]._source.scope.temporal.start
       log.info(`adding data after model run ${actualThreshold} to existing index...`)
     } else {
       await client.indices.create({
