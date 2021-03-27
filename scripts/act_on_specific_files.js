@@ -118,7 +118,38 @@ async function applyActionToAllFilesMatchingCriteria (basePath, criterion, actio
 
 async function getFieldsBeob (itemPath) {}
 
-async function getFieldsMosmix (itemPath) {}
+async function getFieldsMosmix (itemPath) {
+  const fileNameWithExtension = _.last(_.split(itemPath, path.sep))
+  const fileNameDotSeparated = _.split(fileNameWithExtension, '.')
+  const fileName = _.first(fileNameDotSeparated)
+  const fileExtension = _.last(fileNameDotSeparated)
+  const fileNameTokens = _.split(fileName, '-')
+  const itemProperties = await fs.stat(itemPath)
+
+  const directoryName = _.nth(_.split(itemPath, path.sep), -2)
+  const issueTime = moment.utc(directoryName, 'YYYYMMDDHH')
+
+  const fields = {
+    model: _.nth(fileNameTokens, 1).toLowerCase(),
+    scope: {
+      temporal: {
+        start: issueTime.add(1, 'hours').toISOString(),
+        end: issueTime.add(240, 'hours').toISOString()
+      },
+      geographical: {
+        stationId: _.nth(fileNameTokens, 0)
+      }
+    },
+    file: {
+      path: itemPath,
+      type: fileExtension,
+      format: 'kml',
+      size: itemProperties.size
+    }
+  }
+
+  return fields
+}
 
 async function getFieldsCosmoDe (itemPath) {
   const fileNameWithExtension = _.last(_.split(itemPath, path.sep))
