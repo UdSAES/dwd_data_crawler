@@ -25,6 +25,7 @@ const THRESHOLD = processenv('THRESHOLD')
 const ELASTICSEARCH_ORIGIN = processenv('ELASTICSEARCH_ORIGIN')
 const INDEX_NAME_PREFIX = processenv('INDEX_NAME_PREFIX')
 const INDEX_FROM_SCRATCH = processenv('INDEX_FROM_SCRATCH')
+const ONLY_ADD_NEWEST = processenv('ONLY_ADD_NEWEST')
 
 // Instantiate logger
 const log = bunyan.createLogger({
@@ -67,6 +68,11 @@ async function checkIfConfigIsValid () {
   } else if (_.isNil(INDEX_FROM_SCRATCH)) {
     log.fatal('FATAL: environment variable INDEX_FROM_SCRATCH missing')
     process.exit(1)
+  } else if (_.isNil(ONLY_ADD_NEWEST)) {
+    log.fatal('FATAL: environment variable ONLY_ADD_NEWEST missing')
+    process.exit(1)
+  } else if ((INDEX_FROM_SCRATCH && ONLY_ADD_NEWEST) === true) {
+    log.warn('INDEX_FROM_SCRATCH and ONLY_ADD_NEWEST are both true -- this likely results in duplicate entries in index!')
   } else {
     log.info('DOWNLOAD_DIRECTORY_BASE_PATH is set to', DOWNLOAD_DIRECTORY_BASE_PATH)
     log.info('NEW_DIRECTORY_BASE_PATH is set to', NEW_DIRECTORY_BASE_PATH)
@@ -75,6 +81,7 @@ async function checkIfConfigIsValid () {
     log.info('ELASTICSEARCH_ORIGIN is set to', ELASTICSEARCH_ORIGIN)
     log.info('INDEX_NAME_PREFIX is set to', INDEX_NAME_PREFIX)
     log.info('INDEX_FROM_SCRATCH is set to', INDEX_FROM_SCRATCH)
+    log.info('ONLY_ADD_NEWEST is set to', ONLY_ADD_NEWEST)
     log.info('configuration is valid, moving on...')
   }
 }
@@ -544,8 +551,10 @@ async function runIndexationOfFilesInElasticsearch () {
         }
       })
 
-      // Disregard THRESHOLD given via ENVVAR and start at latest model run in index
-      actualThreshold = response.body.hits.hits[0]._source.scope.temporal.start
+      if (ONLY_ADD_NEWEST === true) {
+        // Disregard THRESHOLD given via ENVVAR and start at latest model run in index
+        actualThreshold = response.body.hits.hits[0]._source.scope.temporal.start
+      }
       log.info(`adding data after model run ${actualThreshold} to existing index...`)
     } else {
       await client.indices.create({
