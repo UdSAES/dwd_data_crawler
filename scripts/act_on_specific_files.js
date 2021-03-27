@@ -71,9 +71,9 @@ async function checkIfConfigIsValid () {
   } else if (_.isNil(ONLY_ADD_NEWEST)) {
     log.fatal('FATAL: environment variable ONLY_ADD_NEWEST missing')
     process.exit(1)
-  } else if ((INDEX_FROM_SCRATCH && ONLY_ADD_NEWEST) === true) {
+  } else if ((INDEX_FROM_SCRATCH && ONLY_ADD_NEWEST) === false) {
     log.warn(
-      'INDEX_FROM_SCRATCH and ONLY_ADD_NEWEST are both true -- this likely results in duplicate entries in index!'
+      'INDEX_FROM_SCRATCH and ONLY_ADD_NEWEST are both false -- this likely results in duplicate entries in index!'
     )
   } else {
     log.info('DOWNLOAD_DIRECTORY_BASE_PATH is set to', DOWNLOAD_DIRECTORY_BASE_PATH)
