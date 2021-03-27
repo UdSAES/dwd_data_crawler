@@ -72,7 +72,9 @@ async function checkIfConfigIsValid () {
     log.fatal('FATAL: environment variable ONLY_ADD_NEWEST missing')
     process.exit(1)
   } else if ((INDEX_FROM_SCRATCH && ONLY_ADD_NEWEST) === true) {
-    log.warn('INDEX_FROM_SCRATCH and ONLY_ADD_NEWEST are both true -- this likely results in duplicate entries in index!')
+    log.warn(
+      'INDEX_FROM_SCRATCH and ONLY_ADD_NEWEST are both true -- this likely results in duplicate entries in index!'
+    )
   } else {
     log.info('DOWNLOAD_DIRECTORY_BASE_PATH is set to', DOWNLOAD_DIRECTORY_BASE_PATH)
     log.info('NEW_DIRECTORY_BASE_PATH is set to', NEW_DIRECTORY_BASE_PATH)
@@ -473,7 +475,6 @@ async function moveAllRotatedGrib2Files (basePathOld, basePathNew) {
 
 async function indexFileInElasticsearch (client, index, filePath) {
   // Identify model type (BEOB/MOSMIX/COSMO-DE/COSMO-D2/ICON-D2)
-
   const fileName = _.last(_.split(filePath, path.sep))
   let modelType = ''
   _.forEach(['BEOB', 'MOSMIX', 'COSMODE', 'cosmo-d2', 'icon-d2'], (substring) => {
@@ -503,7 +504,7 @@ async function indexFileInElasticsearch (client, index, filePath) {
   }
 
   // Index in Elasticsearch
-  // NOTE: would be better to do in bulk, but that's premature optimization (?)
+  // NOTE: would be better to do in bulk, but there's other stuff that slows this down
   try {
     await client.index({
       index: index,
