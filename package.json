@@ -17,6 +17,7 @@
     "@elastic/elasticsearch": "^7.11.0",
     "bunyan": "^1.8.15",
     "cheerio": "^1.0.0-rc.5",
+    "csv-parse": "^4.15.3",
     "delay": "^5.0.0",
     "fs-extra": "^9.1.0",
     "lodash": "^4.17.21",

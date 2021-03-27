@@ -11,6 +11,7 @@
 const _ = require('lodash')
 const fs = require('fs-extra')
 const path = require('path')
+const parse = require('csv-parse/lib/sync')
 const { processenv } = require('processenv')
 const bunyan = require('bunyan')
 const moment = require('moment')
@@ -116,7 +117,44 @@ async function applyActionToAllFilesMatchingCriteria (basePath, criterion, actio
   return numberOfFilesActedOn
 }
 
-async function getFieldsBeob (itemPath) {}
+async function getFieldsBeob (itemPath) {
+  const fileNameWithExtension = _.last(_.split(itemPath, path.sep))
+  const fileNameDotSeparated = _.split(fileNameWithExtension, '.')
+  const fileName = _.first(fileNameDotSeparated)
+  const fileExtension = _.last(fileNameDotSeparated)
+  const fileNameTokens = _.split(fileName, '-')
+  const itemProperties = await fs.stat(itemPath)
+
+  const fileContent = await fs.readFile(itemPath, { encoding: 'utf8' })
+  const records = parse(fileContent, { columns: true, delimiter: ';', from_line: 3 })
+
+  const timestamps = _.map(records, (item) => {
+    const dateTimeString = `${item.Datum}_${item['Uhrzeit (UTC)']}`
+    const dateTime = moment.utc(dateTimeString, 'DD.MM.YY_hh:mm')
+    return dateTime.valueOf()
+  })
+
+  const fields = {
+    model: _.nth(fileNameTokens, 1).toLowerCase(),
+    scope: {
+      temporal: {
+        start: moment.utc(_.min(timestamps)).toISOString(),
+        end: moment.utc(_.max(timestamps)).toISOString()
+      },
+      geographical: {
+        stationId: _.nth(fileNameTokens, 0)
+      }
+    },
+    file: {
+      path: itemPath,
+      type: fileExtension,
+      format: _.first(_.split(fileExtension, '.')),
+      size: itemProperties.size
+    }
+  }
+
+  return fields
+}
 
 async function getFieldsMosmix (itemPath) {
   const fileNameWithExtension = _.last(_.split(itemPath, path.sep))
