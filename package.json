@@ -19,7 +19,7 @@
     "delay": "^5.0.0",
     "fs-extra": "^9.1.0",
     "lodash": "^4.17.21",
-    "moment": "^2.29.1",
+    "moment": "^2.29.4",
     "moment-timezone": "^0.5.33",
     "processenv": "^3.0.3",
     "request": "^2.88.2",
